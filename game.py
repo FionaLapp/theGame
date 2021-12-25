@@ -5,10 +5,13 @@ Created on Fri Dec 24 18:09:48 2021
 @author: Fiona
 """
 
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 from random import randint
+import logging
+import sys
 #TODO add toString methods
 
+LOG_LEVEL=logging.INFO
 CARDS_IN_HAND=6
 NUMBER_OF_PLAYERS=4
 NUMBER_OF_PILES=4
@@ -16,6 +19,17 @@ CARDS_PER_TURN=2
 NUMBER_OF_CARDS=100
 LOWEST_PLAYABLE_NUMBER=2
 
+
+def configure_logging():
+    # create logger
+    logger = logging.getLogger('debug_logger')
+    logger.setLevel(LOG_LEVEL)
+    # create console handler and set level to debug
+    console = logging.StreamHandler(sys.stdout)
+    console.setLevel(LOG_LEVEL)
+    logger.addHandler(console)
+    return logger
+logger=configure_logging()
 
 class Player:
     def __init__(self, drawing_pile, game):
@@ -28,7 +42,7 @@ class Player:
         
     def card_playable(self, card):
         #TODO check if playable
-        print("checking if {} playable".format(card))
+        logger.info("checking if {} playable".format(card))
         return False
         
     def play_card(self, card):
@@ -39,10 +53,10 @@ class Player:
         """
         if not self.card_playable(card):
             #TODO throw exception
-            print("not possible")
+            logger.info("not possible")
         else:
             #TODO add card to pile
-            print("removing card {} from hand".format( card))
+            logger.info("removing card {} from hand".format(card))
         #TODO decrease number of cards I need to play
         #TODO remove card from  my cards
         
@@ -52,7 +66,7 @@ class Player:
         inside the game object, draw_card must be called for pile and player
         """
         #TODO draw card
-        print("adding card {} to hand".format(card))
+        logger.info("adding card {} to hand".format(card))
         self.hand.append(card)
         
     def __str__(self):
@@ -63,7 +77,7 @@ class Player:
     
     
     
-class Pile(ABC):
+class Pile(metaclass= ABCMeta):
     
     def __init__(self):
         self.cards=[]
@@ -84,7 +98,7 @@ class DrawingPile(Pile):
         card=self.cards.pop(random_index)
         
         #TODO remove card from pile
-        print("drawing random card: ", card)
+        logger.info("drawing random card: ".format(card))
         
         return card
 
@@ -106,27 +120,27 @@ class PlayingPile(Pile):
         """
         if not self.card_playable(card):
             #TODO throw exception
-            print("not possible")
+            logger.info("not possible")
         else:
             #TODO add card to pile
-            print("adding card {} to pile".format( card))
+            logger.info("adding card {} to pile".format( card))
     
     def get_top_card(self):
         #TODO get top card
-        print("getting top card")
+        logger.info("getting top card")
     
 class DecreasingPile(PlayingPile):
         
     def card_playable(self,card):
         #TODO check if playable
-        print("checking if {} playable".format(card))
+        logger.info("checking if {} playable".format(card))
         return False
     
 class IncreasingPile(PlayingPile):
         
     def card_playable(self,card):
         #TODO check if playable
-        print("checking if {} playable".format(card))
+        logger.info("checking if {} playable".format(card))
         return False
     
         
@@ -147,40 +161,45 @@ class Game:
         #play card
         #check if finished
         #draw card if player change
-        print("{} starts game".format(first_player))
+        logger.info("{} starts game".format(first_player))
         
     def check_if_finished(self):
         #TODO check if finished
-        print("checking if finished")
+        logger.info("checking if finished")
         game_finished=False
         return game_finished
 
     def play_card(self, player, pile, card):
         #TODO play card
-        print("{} plays {} on {} ".format(player, card, pile))
+        logger.info("{} plays {} on {} ".format(player, card, pile))
     
-    def draw_card(self, player, pile):
+    def draw_card(self, player, drawing_pile):
         #TODO draw card
-        card=pile.remove_card()
+        card=drawing_pile.remove_card()
         player.add_card_to_hand(card)
-        print("{} draws {} from {} ".format(player, card, pile))
+        logger.info("{} draws {} from {} ".format(player, card, drawing_pile))
     
     def _create_piles(self, number_of_piles):
-        print("creating {} piles".format(number_of_piles))
+        logger.info("creating {} piles".format(number_of_piles))
     
     def _create_players(self, number_of_players):
-        print("creating {} players".format(number_of_players))
+        logger.info("creating {} players".format(number_of_players))
         
         
 if __name__ == "__main__":
+    #logging.basicConfig(filename='debug.log', encoding='utf-8', level=LOG_LEVEL)
+    logger.info("HI")
     game=Game()
-    pile1=DecreasingPile()
-    pile1.card_playable(1)
-    pile2= DrawingPile(100)
-    player=Player(pile2, game)
-    print(player.hand)
+    player=Player(game.drawing_pile, game)
+    # pile1=DecreasingPile()
+    # pile1.card_playable(1)
+    # pile2= DrawingPile(100)
+    # player=Player(pile2, game)
+    # logger.info(player.hand)
     
-    print(pile2.remove_card())
-    print(pile2.cards)
+    # logger.info(pile2.remove_card())
+    # logger.info(pile2.cards)
     
+    
+logger.handlers.clear()
     
