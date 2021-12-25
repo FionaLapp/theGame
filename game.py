@@ -6,6 +6,7 @@ Created on Fri Dec 24 18:09:48 2021
 """
 
 from abc import ABC, abstractmethod
+from random import randint
 #TODO add toString methods
 
 CARDS_IN_HAND=6
@@ -17,9 +18,11 @@ LOWEST_PLAYABLE_NUMBER=2
 
 
 class Player:
-    def __init__(self):
-        self.cards=[]
-        #TODO draw 6 cards       
+    def __init__(self, drawing_pile, game):
+        self.hand=[]
+        #draw as many cards as a hand needs
+        for i in range(CARDS_IN_HAND):
+            game.draw_card(self, drawing_pile)
         self.is_my_turn= False
         self.number_of_cards_i_need_to_play=CARDS_PER_TURN
         
@@ -43,15 +46,17 @@ class Player:
         #TODO decrease number of cards I need to play
         #TODO remove card from  my cards
         
-    def draw_card(self):
+    def add_card_to_hand(self, card):
         """
         This function does everything associated with drawing a card on the player-side: adding it to their hand
         inside the game object, draw_card must be called for pile and player
         """
         #TODO draw card
-        print("drawing card")
+        print("adding card {} to hand".format(card))
+        self.hand.append(card)
+        
     def __str__(self):
-        return "Player with cards {}".format(self.cards)
+        return "Player with cards {}".format(self.hand)
         
     
     
@@ -69,13 +74,14 @@ class DrawingPile(Pile):
     def __init__(self, size):
         self.cards=[*range(LOWEST_PLAYABLE_NUMBER, size)] #if size=100, this will go up to 99
     
-    def draw_random_card():
+    def remove_card(self):
         """
         This function does everything associated with drawing a card on the pile-side: removing it from the pile
         inside the game object, draw_card must be called for pile and player
         """
         #TODO randomly pick a card
-        card="dummy"
+        random_index=randint(0,len(self.cards))
+        card=self.cards.pop(random_index)
         
         #TODO remove card from pile
         print("drawing random card: ", card)
@@ -126,7 +132,7 @@ class IncreasingPile(PlayingPile):
         
 class Game:
     def __init__(self):
-        self.drawing_pile= DrawingPile()
+        self.drawing_pile= DrawingPile(NUMBER_OF_CARDS)
         self.piles=[]
         #TODO add piles
         self.players=[]
@@ -153,8 +159,10 @@ class Game:
         #TODO play card
         print("{} plays {} on {} ".format(player, card, pile))
     
-    def draw_card(self, player, pile, card):
+    def draw_card(self, player, pile):
         #TODO draw card
+        card=pile.remove_card()
+        player.add_card_to_hand(card)
         print("{} draws {} from {} ".format(player, card, pile))
     
     def _create_piles(self, number_of_piles):
@@ -165,11 +173,14 @@ class Game:
         
         
 if __name__ == "__main__":
-    player1=Player()
-    player1.draw_card()
+    game=Game()
     pile1=DecreasingPile()
     pile1.card_playable(1)
     pile2= DrawingPile(100)
+    player=Player(pile2, game)
+    print(player.hand)
+    
+    print(pile2.remove_card())
     print(pile2.cards)
     
     
