@@ -6,6 +6,7 @@ Created on Fri Dec 24 18:09:48 2021
 """
 
 from abc import ABC, abstractmethod
+#TODO add toString methods
 
 CARDS_IN_HAND=6
 NUMBER_OF_PLAYERS=4
@@ -22,12 +23,23 @@ class Player:
         self.is_my_turn= False
         self.number_of_cards_i_need_to_play=CARDS_PER_TURN
         
-    def play_card(self, card, pile):
+    def card_playable(self, card):
+        #TODO check if playable
+        print("checking if {} playable".format(card))
+        return False
+        
+    def play_card(self, card):
         """
         This function does everything associated with playing a card on the player-side: removing it from their hand, decreasing the number of cards they need to play
         inside the game object, play_card must be called for pile and player
+        This needs to throw an exception if the card is not playable
         """
-        print("playing card {} on pile {}".format(card, pile))
+        if not self.card_playable(card):
+            #TODO throw exception
+            print("not possible")
+        else:
+            #TODO add card to pile
+            print("removing card {} from hand".format( card))
         #TODO decrease number of cards I need to play
         #TODO remove card from  my cards
         
@@ -38,6 +50,8 @@ class Player:
         """
         #TODO draw card
         print("drawing card")
+    def __str__(self):
+        return "Player with cards {}".format(self.cards)
         
     
     
@@ -117,14 +131,36 @@ class Game:
         #TODO add piles
         self.players=[]
         #TODO add players
+        self.current_player=None
+        self.next_player=None
        
-    #TODO add game logic    
+    #TODO add game logic  
+    def play(self, first_player):
+        #TODO start game 
+        #set current_player, next_player
+        #play card
+        #check if finished
+        #draw card if player change
+        print("{} starts game".format(first_player))
         
+    def check_if_finished(self):
+        #TODO check if finished
+        print("checking if finished")
+        game_finished=False
+        return game_finished
+
+    def play_card(self, player, pile, card):
+        #TODO play card
+        print("{} plays {} on {} ".format(player, card, pile))
     
-    def _create_piles(number_of_piles):
+    def draw_card(self, player, pile, card):
+        #TODO draw card
+        print("{} draws {} from {} ".format(player, card, pile))
+    
+    def _create_piles(self, number_of_piles):
         print("creating {} piles".format(number_of_piles))
     
-    def _create_players(number_of_players):
+    def _create_players(self, number_of_players):
         print("creating {} players".format(number_of_players))
         
         
