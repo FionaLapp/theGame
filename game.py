@@ -51,6 +51,7 @@ class InputValidationError(Exception):
         self.message = message
         super().__init__(self.message)
 
+
 class CardNotPlayableError(Exception):
     """Exception raised when card cannot be played.
 
@@ -61,114 +62,127 @@ class CardNotPlayableError(Exception):
 
     def __init__(self, card, message="card cannot be played"):
         logger.handlers.clear()
-        self.card=card
+        self.card = card
         self.message = message
         super().__init__(self.message)
 
-#%% player
+# %% player
+
 
 class Player:
-    def __init__(self, id_number, drawing_pile, game, cards_in_hand, cards_per_turn):
-        self.id_number=id_number
-        self.hand=[]
-        #draw as many cards as a hand needs
+    def __init__(self, id_number, drawing_pile, game, cards_in_hand,
+                 cards_per_turn):
+        self.id_number = id_number
+        self.hand = []
+        # draw as many cards as a hand needs
         for i in range(cards_in_hand):
             game.draw_card(self, drawing_pile)
-        self.is_my_turn= False
-        self.number_of_cards_i_need_to_play=cards_per_turn
-        #logger.debug("{} initialised successfully".format(self))
-        
+        self.is_my_turn = False
+        self.number_of_cards_i_need_to_play = cards_per_turn
+        # logger.debug("{} initialised successfully".format(self))
+
     def card_playable(self, card):
-        #check if playable
-        #logger.debug("checking if {} playable".format(card))
+        # check if playable
+        # logger.debug("checking if {} playable".format(card))
         if card in self.hand:
             return True
         else:
             return False
-        
+
     def remove_card_from_hand(self, card):
         """
-        This function does everything associated with playing a card on the player-side: removing it from their hand, decreasing the number of cards they need to play
-        inside the game object, remove_card_from_hand must be called for pile and player
+        This function does everything associated with playing a card on the
+        player-side: removing it from their hand, decreasing the number of
+        cards they need to play
+        inside the game object, remove_card_from_hand must be called for pile
+        and player
         This needs to throw an exception if the card is not playable
         """
         if not self.card_playable(card):
-            #throw exception
-            #logger.debug("not possible")
-            raise CardNotPlayableError(card, "Cannot play {} because it is not contained in hand {}".format(card, self.hand))
-            
+            # throw exception
+            # logger.debug("not possible")
+            raise CardNotPlayableError(
+                card, "Cannot play {} because it is not contained in hand {}".format(
+                    card, self.hand))
+
         else:
-            #remove card from hand
+            # remove card from hand
             self.hand.remove(card)
-            #decrease number of cards I need to play
-            if self.number_of_cards_i_need_to_play>0:
-                self.number_of_cards_i_need_to_play-=1
+            # decrease number of cards I need to play
+            if self.number_of_cards_i_need_to_play > 0:
+                self.number_of_cards_i_need_to_play -= 1
             else:
-                self.number_of_cards_i_need_to_play=0
-            
-        
+                self.number_of_cards_i_need_to_play = 0
+
     def add_card_to_hand(self, card):
         """
-        This function does everything associated with drawing a card on the player-side: adding it to their hand
+        This function does everything associated with drawing a card on the
+        player-side: adding it to their hand
         inside the game object, draw_card must be called for pile and player
         """
-        #add card
-        #logger.debug("adding card {} to hand".format(card))
+        # add card
+        # logger.debug("adding card {} to hand".format(card))
         self.hand.append(card)
-        
+
     def __str__(self):
         return "Player {} with cards {}".format(self.id_number, self.hand)
-        
-#%% pile    
-      
-class Pile(metaclass= ABCMeta):
-    
-    def __init__(self):
-        self.cards=[]
 
-        
+# %% pile
+
+
+class Pile(metaclass=ABCMeta):
+
+    def __init__(self):
+        self.cards = []
+
+
 class DrawingPile(Pile):
-    
+
     def __init__(self, size):
-        self.cards=[*range(LOWEST_PLAYABLE_NUMBER, size)] #if size=100, this will go up to 99
-    
+        # if size=100, this will go up to 99
+        self.cards = [*range(LOWEST_PLAYABLE_NUMBER, size)]
+
     def remove_card(self):
         """
-        This function does everything associated with drawing a card on the pile-side: removing it from the pile
+        This function does everything associated with drawing a card on the
+        pile-side: removing it from the pile
         inside the game object, draw_card must be called for pile and player
         """
-        #randomly pick a card
-        random_index=randint(0,len(self.cards)-1)
-        
-        #remove card from pile
+        # randomly pick a card
+        random_index = randint(0, len(self.cards) - 1)
+
+        # remove card from pile
         try:
-            card=self.cards.pop(random_index)
+            card = self.cards.pop(random_index)
         except Exception:
-            #this is only in here because I coded it without the -1 before; thought I might as well leave it in
-            raise InputValidationError(random_index, "Something went wrong with drawing the cards: tried to draw card at index {} but there are only {} cards available".format(random_index, len(self.cards)))
-        
-        #logger.debug("drew random card: {}".format(card))
-        
+            # this is only in here because I coded it without the -1 before;
+            # thought I might as well leave it in
+            raise InputValidationError(
+                random_index, "Something went wrong with drawing the cards: tried to draw card at index {} but there are only {} cards available".format(
+                    random_index, len(
+                        self.cards)))
+
+        # logger.debug("drew random card: {}".format(card))
+
         return card
-    
+
     def __str__(self):
         return "DrawingPile"
-     
 
 
 class PlayingPile(Pile):
-    
+
     def __init__(self, id_number):
         super().__init__()
-        self.id_number= id_number
-    
+        self.id_number = id_number
+
     @abstractmethod
     def card_playable(self, card):
         """
         An abstract method that needs to be implemented by increasing and decreasing piles separately
         """
-        #return False
-    
+        # return False
+
     def play_card(self, card):
         """
         This function does everything associated with playing a card on the pile-side: adding it to the pile
@@ -176,243 +190,263 @@ class PlayingPile(Pile):
         This needs to throw an exception if the card is not playable
         """
         if not self.card_playable(card):
-            #throw exception
+            # throw exception
             #logger.debug("not possible")
-            raise CardNotPlayableError(card, "Cannot play {} ({}) on pile with top card {}".format(card, self.pile_type, self.get_top_card()))
-            
-            
+            raise CardNotPlayableError(
+                card, "Cannot play {} ({}) on pile with top card {}".format(
+                    card, self.pile_type, self.get_top_card()))
+
         else:
-            #add card to pile
+            # add card to pile
             self.cards.append(card)
             #logger.debug("adding card {} to pile".format( card))
-    
+
     def get_top_card(self):
-        #get top card
-        top_card=self.cards[-1]
+        # get top card
+        top_card = self.cards[-1]
         #logger.debug("getting top card: {}".format(top_card))
-        return top_card 
-    
+        return top_card
+
     def __str__(self):
         return "Playing Pile {}".format(self.id_number)
-        
-    
+
+
 class DecreasingPile(PlayingPile):
     def __init__(self, id_number, number_of_cards):
         super().__init__(id_number)
-        self.pile_type=DECREASING
+        self.pile_type = DECREASING
         self.cards.append(number_of_cards)
-        
-    def card_playable(self,card):
-        #check if playable
-        top_card=self.get_top_card()
-        if card<top_card or card==top_card+10:
+
+    def card_playable(self, card):
+        # check if playable
+        top_card = self.get_top_card()
+        if card < top_card or card == top_card + 10:
             #logger.debug("card {} playable on decreasing pile with top card {}".format(card, top_card))
             return True
         else:
             #logger.debug("card {} not playable on decreasing pile with top card {}".format(card, top_card))
             return False
-    
+
     def __str__(self):
         return "Decreasing Pile {}".format(self.id_number)
-     
-    
+
+
 class IncreasingPile(PlayingPile):
     def __init__(self, id_number):
         super().__init__(id_number)
-        self.pile_type=INCREASING
-        self.cards.append(LOWEST_PLAYABLE_NUMBER-1)
-        
-    def card_playable(self,card):
-        #check if playable
-        top_card=self.get_top_card()
-        if card>top_card or card==top_card-10:
+        self.pile_type = INCREASING
+        self.cards.append(LOWEST_PLAYABLE_NUMBER - 1)
+
+    def card_playable(self, card):
+        # check if playable
+        top_card = self.get_top_card()
+        if card > top_card or card == top_card - 10:
             #logger.debug("card {} playable on increasing pile with top card {}".format(card, top_card))
             return True
         else:
             #logger.debug("card {} not playable on increasing pile with top card {}".format(card, top_card))
             return False
-    
+
     def __str__(self):
         return "Increasing Pile {}".format(self.id_number)
 
-#%% Game    
-        
+# %% Game
+
+
 class Game():
-    def __init__(self, cards_in_hand=6, number_of_players=4, number_of_piles=4, cards_per_turn=2, number_of_cards=100):
-        self.cards_in_hand= cards_in_hand
-        self.number_of_players=number_of_players
-        self.number_of_piles=number_of_piles
-        self.cards_per_turn=cards_per_turn
-        self.number_of_cards=number_of_cards
-        self.drawing_pile= DrawingPile(number_of_cards)
-        self.piles=[]
-        #add piles
+    def __init__(
+            self,
+            cards_in_hand=6,
+            number_of_players=4,
+            number_of_piles=4,
+            cards_per_turn=2,
+            number_of_cards=100):
+        self.cards_in_hand = cards_in_hand
+        self.number_of_players = number_of_players
+        self.number_of_piles = number_of_piles
+        self.cards_per_turn = cards_per_turn
+        self.number_of_cards = number_of_cards
+        self.drawing_pile = DrawingPile(number_of_cards)
+        self.piles = []
+        # add piles
         self._create_piles(self.number_of_piles, self.number_of_cards)
-        
-        
-        
-        self.players=[]
-        #add players
-        self._create_players(self.number_of_players, self.cards_in_hand, self.cards_per_turn)
-           
-        self.current_player=None
-        self.finished=False
-       
-    #TODO add game logic  
+
+        self.players = []
+        # add players
+        self._create_players(
+            self.number_of_players,
+            self.cards_in_hand,
+            self.cards_per_turn)
+
+        self.current_player = None
+        self.finished = False
+
+    # TODO add game logic
 #    def play(self, first_player):
-        #TODO start game 
-        #set current_player, next_player
-        #play card
-        #check if finished
-        #draw card if player change
+        # TODO start game
+        # set current_player, next_player
+        # play card
+        # check if finished
+        # draw card if player change
         #logger.debug("{} starts game".format(first_player))
 
-    
     def game_won(self):
-        if self.drawing_pile.cards!=[]: 
-            #there are still cards on the drawing pile
+        if self.drawing_pile.cards != []:
+            # there are still cards on the drawing pile
             return False
         else:
             for player in self.players:
-                if player.hand!=[]:
-                    #a player's hand isn't empty
+                if player.hand != []:
+                    # a player's hand isn't empty
                     return False
-            #no cards in drawing pile and all hands empty
+            # no cards in drawing pile and all hands empty
             return True
+
     def game_lost(self):
-        if not self.game_won() and not self.current_player.hand==[]:
-            #there are still cards that haven't been played
-            can_play_matrix=self.can_play(self.current_player) #true if player can play, false otherwise
-            return np.all(np.invert(can_play_matrix))#all have to be true
-    
-    def get_next_player(self):                    
-        #TODO add this
+        if not self.game_won() and not self.current_player.hand == []:
+            # there are still cards that haven't been played
+            # true if player can play, false otherwise
+            can_play_matrix = self.can_play(self.current_player)
+            return np.all(np.invert(can_play_matrix))  # all have to be true
+
+    def get_next_player(self):
+        # TODO add this
         print()
-        
+
     def game_finished(self):
-        #check if finished
+        # check if finished
         #logger.debug("checking if finished")
         if self.game_won() or self.game_lost():
-            self.finished=True
+            self.finished = True
             return True
         return False
-    
+
     def can_play(self, player):
-        can_play_matrix=np.zeros((len(player.hand), len(self.piles)), dtype=bool)
+        can_play_matrix = np.zeros(
+            (len(
+                player.hand), len(
+                self.piles)), dtype=bool)
         for i, card in enumerate(player.hand):
             for j, pile in enumerate(self.piles):
-                can_play_matrix[i, j]=self.card_playable(player, pile, card)
-        return can_play_matrix        
-    
+                can_play_matrix[i, j] = self.card_playable(player, pile, card)
+        return can_play_matrix
+
     def card_playable(self, player, pile, card):
         return (player.card_playable(card) and pile.card_playable(card))
-    
+
     def play_card(self, pile, card, want_to_draw):
-        player=self.current_player
-        if player.number_of_cards_i_need_to_play>1: #if I only have one mandatory turn left, it's this turn
-            want_to_draw=False
-        if not want_to_draw and len(player.hand)==1:
-            want_to_draw=True
-        #play card
+        player = self.current_player
+        if player.number_of_cards_i_need_to_play > 1:  # if I only have one mandatory turn left, it's this turn
+            want_to_draw = False
+        if not want_to_draw and len(player.hand) == 1:
+            want_to_draw = True
+        # play card
         if self.card_playable(player, pile, card):
             player.remove_card_from_hand(card)
             pile.play_card(card)
             #logger.debug("{} plays {} on {} ".format(player, card, pile))
-            
-            #check if game finished
+
+            # check if game finished
             if self.game_finished():
                 return
         else:
-            #logger.debug(CardNotPlayableError)
+            # logger.debug(CardNotPlayableError)
             raise CardNotPlayableError(card)
-        
+
         if want_to_draw:
-            player.number_of_cards_i_need_to_play=self.cards_per_turn
-            player.is_my_turn=False
-            #TODO function
-            next_player_number=(player.id_number+1)%self.number_of_players
-            self.current_player=self.players[next_player_number]
-            while len(player.hand)<self.cards_in_hand and not self.drawing_pile==[]:
+            player.number_of_cards_i_need_to_play = self.cards_per_turn
+            player.is_my_turn = False
+            # TODO function
+            next_player_number = (
+                player.id_number + 1) % self.number_of_players
+            self.current_player = self.players[next_player_number]
+            while len(
+                    player.hand) < self.cards_in_hand and not self.drawing_pile == []:
                 self.draw_card(player, self.drawing_pile)
-                
-            
-                
-        
-                
-        
+
     def draw_card(self, player, drawing_pile):
-        #draw card
-        card=drawing_pile.remove_card()
+        # draw card
+        card = drawing_pile.remove_card()
         player.add_card_to_hand(card)
         #logger.debug("{} drew {} from {} ".format(player, card, drawing_pile))
-    
+
     def _create_piles(self, number_of_piles, number_of_cards):
-        if number_of_piles%2!=0:
-            raise InputValidationError(number_of_piles, "I'd really prefer an even number of piles, and {} might be a lot of things but it ain't that".format(number_of_piles))
-        for i in range(int(number_of_piles/2)):
-            self.piles.append(DecreasingPile(2*i, number_of_cards))
-            self.piles.append(IncreasingPile((2*i)+1))
+        if number_of_piles % 2 != 0:
+            raise InputValidationError(
+                number_of_piles,
+                "I'd really prefer an even number of piles, and {} might be a lot of things but it ain't that".format(number_of_piles))
+        for i in range(int(number_of_piles / 2)):
+            self.piles.append(DecreasingPile(2 * i, number_of_cards))
+            self.piles.append(IncreasingPile((2 * i) + 1))
         #logger.debug("creating {} piles".format(number_of_piles))
-    
-    def _create_players(self, number_of_players, cards_in_hand, cards_per_turn):
+
+    def _create_players(
+            self,
+            number_of_players,
+            cards_in_hand,
+            cards_per_turn):
         for i in range(int(number_of_players)):
-            self.players.append(Player(i, self.drawing_pile, self, cards_in_hand, cards_per_turn))
+            self.players.append(
+                Player(
+                    i,
+                    self.drawing_pile,
+                    self,
+                    cards_in_hand,
+                    cards_per_turn))
         #logger.debug("creating {} players".format(number_of_players))
-    
+
     def __str__(self):
         return "Game"
-    
+
+
 class Strategy():
     def __init__(self):
-        self.game=Game()
-    
+        self.game = Game()
+
     def start_game(self, player):
-        if not player in self.game.players:
-            raise InputValidationError(player, "Player does not participate in game")
-        self.game.current_player=player
-        
-    
+        if player not in self.game.players:
+            raise InputValidationError(
+                player, "Player does not participate in game")
+        self.game.current_player = player
+
     def play_random(self):
-        counter=0
+        counter = 0
         print(self.game.finished)
         while not self.game.finished and counter < 100:
             print(counter)
-            counter+=1
+            counter += 1
             print("Current player:{}".format(self.game.current_player))
-            want_to_draw=True
+            want_to_draw = True
             for pile in self.game.piles:
                 for card in self.game.current_player.hand:
                     if self.game.card_playable(self.game.current_player, pile,
                                                card):
-                        print("{} playing card {} on pile {}".format(self.game.current_player, card, pile))
-                        
+                        print(
+                            "{} playing card {} on pile {}".format(
+                                self.game.current_player, card, pile))
+
                         self.game.play_card(pile, card, want_to_draw)
                         continue
                 continue
 
-            
-        
+
 if __name__ == "__main__":
-    logger=configure_logging()
+    logger = configure_logging()
     #logging.basicConfig(handler=logging.StreamHandler(sys.stdout), level=LOG_LEVEL)
-    my_strategy=Strategy()
-    my_game=my_strategy.game
-    
+    my_strategy = Strategy()
+    my_game = my_strategy.game
+
     my_strategy.start_game(my_game.players[0])
     my_strategy.play_random()
     print(my_game.game_won())
     print(my_game.game_lost())
-    #player.play_card(1)
+    # player.play_card(1)
     logger.handlers.clear()
     # pile1=DecreasingPile()
     # pile1.card_playable(1)
     # pile2= DrawingPile(100)
     # player=Player(pile2, game)
     # #logger.debug(player.hand)
-    
+
     # #logger.debug(pile2.remove_card())
     # #logger.debug(pile2.cards)
-    
-    
-
-    
