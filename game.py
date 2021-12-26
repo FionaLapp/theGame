@@ -9,6 +9,7 @@ from random import randint
 import logging
 import sys
 import numpy as np
+import os
 
 
 LOG_LEVEL = logging.INFO
@@ -51,6 +52,8 @@ class LoggingMethods():
 class ContextManager():
     def __init__(self):
         GameLoggers.debug_logger.debug('Context Manager init method called')
+        #GameLoggers.strategy_logger.handlers.clear()
+        #os.remove('strategy.log')
 
     def __enter__(self):
         GameLoggers.debug_logger.debug('enter method called')
@@ -65,9 +68,9 @@ class ContextManager():
 class GameLoggers():
     # change log_level to debug in debug_logger to create output in debug.log
     debug_logger = LoggingMethods.createLogger(
-        "debug_logger", LOG_LEVEL, file="debug.log", console_logging=False)
+        "debug_logger", logging.INFO, file="debug.log", console_logging=False)
     strategy_logger = LoggingMethods.createLogger(
-        "strategy_logger", LOG_LEVEL, file="strategy.log",
+        "strategy_logger", logging.INFO, file="strategy.log",
         console_logging=False)
 
 
@@ -188,7 +191,6 @@ class DrawingPile(Pile):
         """
         # randomly pick a card
         random_index = randint(0, len(self.cards) - 1)
-
         # remove card from pile
         try:
             card = self.cards.pop(random_index)
@@ -275,7 +277,8 @@ class DecreasingPile(PlayingPile):
             return False
 
     def __str__(self):
-        return "Decreasing Pile {}".format(self.id_number)
+        return "Decreasing Pile {} with top card {}".format(
+            self.id_number, self.get_top_card())
 
 
 class IncreasingPile(PlayingPile):
@@ -299,7 +302,8 @@ class IncreasingPile(PlayingPile):
             return False
 
     def __str__(self):
-        return "Increasing Pile {}".format(self.id_number)
+        return "Increasing Pile {} with top card {}".format(
+            self.id_number, self.get_top_card())
 
 # %% Game
 
@@ -380,40 +384,44 @@ class Game():
         return (player.card_playable(card) and pile.card_playable(card))
 
     def play_card(self, pile, card, want_to_draw):
-        player = self.current_player
-        if player.number_of_cards_i_need_to_play > 1:
-            # if I only have one mandatory turn left, it's this turn
-            want_to_draw = False
-        if not want_to_draw and len(player.hand) == 1:
-            want_to_draw = True
-        # play card
-        if self.card_playable(player, pile, card):
-            player.remove_card_from_hand(card)
-            pile.play_card(card)
-            GameLoggers.debug_logger.debug("{} plays {} on {} ".format(
-                player, card, pile))
+        if not self.game_finished():
+            player = self.current_player
+            if player.number_of_cards_i_need_to_play > 1:
+                # if I only have one mandatory turn left, it's this turn
+                want_to_draw = False
+            if not want_to_draw and len(player.hand) == 1: #if hand empty then draw
+                want_to_draw = True
+            # play card
+            if self.card_playable(player, pile, card):
+                player.remove_card_from_hand(card)
+                pile.play_card(card)
+                GameLoggers.debug_logger.debug("{} plays {} on {} ".format(
+                    player, card, pile))
 
-            # check if game finished
-            if self.game_finished():
-                return
-        else:
-            GameLoggers.debug_logger.debug(CardNotPlayableError)
-            raise CardNotPlayableError(card)
+                # check if game finished
+                if self.game_finished():
+                    return
+            else:
+                GameLoggers.debug_logger.debug(CardNotPlayableError)
+                raise CardNotPlayableError(card)
 
-        if want_to_draw:
-            player.number_of_cards_i_need_to_play = self.cards_per_turn
-            player.is_my_turn = False
-            while (len(player.hand) < self.cards_in_hand) and (
-                        not self.drawing_pile == []):
-                self.draw_card(player, self.drawing_pile)
-            self.set_next_player()
+            if want_to_draw:
+                player.number_of_cards_i_need_to_play = self.cards_per_turn
+                player.is_my_turn = False
+                if self.drawing_pile == []:
+                    print("empty pile")
+                while (len(player.hand) < self.cards_in_hand) and len(self.drawing_pile.cards) != 0:
+                    self.draw_card(player, self.drawing_pile)
+
+                self.set_next_player()
 
     def draw_card(self, player, drawing_pile):
         # draw card
-        card = drawing_pile.remove_card()
-        player.add_card_to_hand(card)
-        GameLoggers.debug_logger.debug("{} drew {} from {} ".format(
-            player, card, drawing_pile))
+        if drawing_pile.cards != []:
+            card = drawing_pile.remove_card()
+            player.add_card_to_hand(card)
+            GameLoggers.debug_logger.debug("{} drew {} from {} ".format(
+                player, card, drawing_pile))
 
     def _create_piles(self, number_of_piles, number_of_cards):
         if number_of_piles % 2 != 0:
@@ -443,6 +451,18 @@ class Game():
         GameLoggers.debug_logger.debug("creating {} players".format(
             number_of_players))
 
+    def print_hands(self):
+        hand_string=""
+        for player in self.players:
+            hand_string+="{}".format(player.__str__())
+        return hand_string
+
+    def print_piles(self):
+        pile_string=""
+        for pile in self.piles:
+            pile_string+="{} with cards {}".format(pile.__str__(), pile.cards)
+        return pile_string
+
     def __str__(self):
         return "Game"
 
@@ -470,7 +490,7 @@ class Strategy(metaclass=ABCMeta):
         self.game.current_player = player
 
 
-class PlayFirstStrategy(Strategy):
+class PlayFirstTwoStrategy(Strategy):
     def play(self):
         while not self.game.finished:
             want_to_draw = True
@@ -487,14 +507,78 @@ class PlayFirstStrategy(Strategy):
                 continue
 
 
+class PlayWithMetricStrategy(Strategy):
+    def play(self):
+        while not self.game.finished:
+            want_to_draw = True
+            self.metric_matrix = self.basic_metric()
+            metric_matrix = self.metric_matrix
+            min_index = np.unravel_index(np.argmin(metric_matrix, axis=None),
+                                         metric_matrix.shape)
+            pile_number = min_index[1]
+            pile = self.game.piles[pile_number]
+            card_position = min_index[0]
+            card = self.game.current_player.hand[card_position]
+            if self.game.card_playable(self.game.current_player, pile, card):
+                GameLoggers.strategy_logger.info(
+                    "{} playing card {} on pile {}".format(
+                                self.game.current_player, card, pile))
+                self.game.play_card(pile, card, want_to_draw)
+            else:
+                if self.game.game_finished():
+                    return
+                raise CardNotPlayableError(card, "{} cannot play {} on pile {}".format(self.game.current_player, card, pile))
+                self.game.play_card(pile, card, want_to_draw)
+
+    def basic_metric(self):
+        """
+        Creates a distance matrix for the strategy's game's current player with
+        maximal value (number of cards +1) for impossible moves, distances
+        otherwise (and -10 for jumps).
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        metric_matrix : numpy.array
+            A distance matrix with higher values for worse cards (jumps have
+            negative values) and the highest value for impossible moves.
+
+        """
+        game = self.game
+        player = game.current_player
+        # create matrix and fill it with highest possible metric so that
+        # impossible moves are never played
+        metric_matrix = (game.number_of_cards + 1) * np.ones(
+            (len(player.hand), len(game.piles)), dtype=int)
+        for i, card in enumerate(player.hand):
+            for j, pile in enumerate(game.piles):
+                if game.card_playable(player, pile, card):
+                    if isinstance(pile, DecreasingPile):
+                        metric_matrix[i, j] = pile.get_top_card()-card
+                    elif isinstance(pile, IncreasingPile):
+                        metric_matrix[i, j] = card-pile.get_top_card()
+        return metric_matrix
+
+
 if __name__ == "__main__":
     with ContextManager() as manager:
-        my_strategy = PlayFirstStrategy()
-        my_game = my_strategy.game
+        win_array=np.zeros(100)
+        for i in range(100):
+            my_strategy = PlayWithMetricStrategy()
+            my_game = my_strategy.game
 
-        my_strategy.start_game(my_game.players[0])
-        my_strategy.play()
-        GameLoggers.strategy_logger.info(
-            "Game won: {}".format(my_game.game_won()))
-        GameLoggers.strategy_logger.info("Game lost: {}".format(
-            my_game.game_lost()))
+            my_strategy.start_game(my_game.players[0])
+            my_strategy.play()
+            GameLoggers.strategy_logger.info(
+                "Game won: {}".format(my_game.game_won()))
+            GameLoggers.strategy_logger.info("Game lost: {}".format(
+                my_game.game_lost()))
+
+            GameLoggers.strategy_logger.info("players: {}".format(my_strategy.game.print_hands()))
+            GameLoggers.strategy_logger.info("piles: {}".format(my_strategy.game.print_piles()))
+            if my_strategy.game.game_won():
+                win_array[i] = 1
+        print(np.sum(win_array))
