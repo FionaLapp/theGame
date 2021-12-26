@@ -9,6 +9,7 @@ from abc import ABCMeta, abstractmethod
 from random import randint
 import logging
 import sys
+import numpy as np
 
 
 LOG_LEVEL=logging.INFO
@@ -87,7 +88,7 @@ class Player:
     def play_card(self, card):
         """
         This function does everything associated with playing a card on the player-side: removing it from their hand, decreasing the number of cards they need to play
-        inside the game object, play_card must be called for pile and player
+        inside the game object, remove_card_from_hand must be called for pile and player
         This needs to throw an exception if the card is not playable
         """
         if not self.card_playable(card):
@@ -262,21 +263,52 @@ class Game():
         #check if finished
         #draw card if player change
         logger.debug("{} starts game".format(first_player))
+    
+    def game_won(self):
+        if self.drawing_pile.cards!=[]: 
+            #there are still cards on the drawing pile
+            return False
+        else:
+            for player in self.players:
+                if player.hand!=[]:
+                    #a player's hand isn't empty
+                    return False
+            #no cards in drawing pile and all hands empty
+            return True
+    def game_lost(self):
+        if not self.game_won():
+            #there are still cards that haven't been played
+            can_play_matrix=self.can_play(self.current_player) #true if player can play, false otherwise
+            return np.all(np.invert(can_play_matrix))#all have to be true
+                        
         
     def check_if_finished(self):
-        #TODO check if finished
+        #check if finished
         logger.debug("checking if finished")
-        game_finished=False
-        return game_finished
-
+        if self.game_won() or self.game_lost():
+            return True
+        return False
+    
+    def can_play(self, player):
+        can_play_matrix=np.zeros(len(player.hand), len(self.piles))
+        for i, card in enumerate(player.hand):
+            for j, pile in enumerate(self.piles):
+                can_play_matrix[i, j]=self.card_playable(player, pile, card)
+        return can_play_matrix        
+    
+    def card_playable(self, player, pile, card):
+        return player.card_playable(card) and pile.card_playable(card)
+    
     def play_card(self, player, pile, card):
         #play card
-        try:
-            player.play_card(card)
+        if self.card_playable(player, pile, card):
+            player.remove_card_from_hand(card)
             pile.play_card(card)
             logger.debug("{} plays {} on {} ".format(player, card, pile))
-        except CardNotPlayableError:
-            logger.debug(CardNotPlayableError.message)
+        else:
+            logger.debug(CardNotPlayableError)
+            raise CardNotPlayableError(card)
+            
         
     def draw_card(self, player, drawing_pile):
         #draw card
