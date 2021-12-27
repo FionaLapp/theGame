@@ -443,6 +443,38 @@ class Strategy(metaclass=ABCMeta):
                 player, "Player does not participate in game")
         self.game.current_player = player
 
+    def basic_metric(self):
+        """
+        Creates a distance matrix for the strategy's game's current player with
+        maximal value (number of cards +1) for impossible moves, distances
+        otherwise (and -10 for jumps).
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        metric_matrix : numpy.array
+            A distance matrix with higher values for worse cards (jumps have
+            negative values) and the highest value for impossible moves.
+
+        """
+        game = self.game
+        player = game.current_player
+        # create matrix and fill it with highest possible metric so that
+        # impossible moves are never played
+        metric_matrix = (game.number_of_cards + 1) * np.ones(
+            (len(player.hand), len(game.piles)), dtype=int)
+        for i, card in enumerate(player.hand):
+            for j, pile in enumerate(game.piles):
+                if game.card_playable(player, pile, card):
+                    if isinstance(pile, DecreasingPile):
+                        metric_matrix[i, j] = pile.get_top_card()-card
+                    elif isinstance(pile, IncreasingPile):
+                        metric_matrix[i, j] = card-pile.get_top_card()
+        return metric_matrix
+
 
 class PlayFirstTwoStrategy(Strategy):
     def play(self):
@@ -486,42 +518,44 @@ class PlayWithMetricStrategy(Strategy):
                         self.game.current_player, card, pile))
                 self.game.play_card(pile, card, want_to_draw)
 
-    def basic_metric(self):
-        """
-        Creates a distance matrix for the strategy's game's current player with
-        maximal value (number of cards +1) for impossible moves, distances
-        otherwise (and -10 for jumps).
+class PlayWithDistanceCutoffStrategy(Strategy):
+    def play(self):
+        while not self.game.finished:
+            want_to_draw = True
+            self.metric_matrix = self.basic_metric()
+            metric_matrix = self.metric_matrix
+            min_index = np.unravel_index(np.argmin(metric_matrix, axis=None),
+                                         metric_matrix.shape)
+            pile_number = min_index[1]
+            pile = self.game.piles[pile_number]
+            card_position = min_index[0]
+            card = self.game.current_player.hand[card_position]
+            if np.shape(metric_matrix)[0]>1:
+                next_move_matrix=np.delete(metric_matrix, card_position, 0)
+                next_move_matrix[:,pile_number]-= pile.get_top_card()-card
+                if np.min(next_move_matrix)<(self.game.number_of_piles+1):
+                    want_to_draw=False
 
-        Parameters
-        ----------
-        None
+            if self.game.card_playable(self.game.current_player, pile, card):
+                game_logging.GameLoggers.strategy_logger.info(
+                    "{} playing card {} on pile {}".format(
+                                self.game.current_player, card, pile))
+                self.game.play_card(pile, card, want_to_draw)
 
-        Returns
-        -------
-        metric_matrix : numpy.array
-            A distance matrix with higher values for worse cards (jumps have
-            negative values) and the highest value for impossible moves.
+            else:
+                if self.game.game_finished():
+                    return
+                raise CardNotPlayableError(
+                    card, "{} cannot play {} on pile {}".format(
+                        self.game.current_player, card, pile))
+                self.game.play_card(pile, card, want_to_draw)
 
-        """
-        game = self.game
-        player = game.current_player
-        # create matrix and fill it with highest possible metric so that
-        # impossible moves are never played
-        metric_matrix = (game.number_of_cards + 1) * np.ones(
-            (len(player.hand), len(game.piles)), dtype=int)
-        for i, card in enumerate(player.hand):
-            for j, pile in enumerate(game.piles):
-                if game.card_playable(player, pile, card):
-                    if isinstance(pile, DecreasingPile):
-                        metric_matrix[i, j] = pile.get_top_card()-card
-                    elif isinstance(pile, IncreasingPile):
-                        metric_matrix[i, j] = card-pile.get_top_card()
-        return metric_matrix
+
 
 
 if __name__ == "__main__":
     with game_logging.ContextManager() as manager:
-        my_strategy = PlayWithMetricStrategy()
+        my_strategy = PlayWithDistanceCutoffStrategy(number_of_players=10, number_of_cards=50)
         my_strategy.start_game(my_strategy.game.players[0])
         my_strategy.play()
         print(
