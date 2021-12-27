@@ -10,8 +10,9 @@
 ## a bit further down the road
 - add GUI
 - add reinforcement learning
+- learn about multiprocessing to make the whole thing faster?
 
-## strategies I'll probably never implement
+## stuff I'll probably never implement
 - remembering the cards that have already been played for calculating the metric
 - playing more than two cards at once if you have one that has a distance of less than (number_of_cards/number_of_piles) from a top-card
 - thinking ahead by one step when playing a card (i.e. playing 2 cards at once?)
