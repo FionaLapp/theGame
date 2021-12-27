@@ -9,10 +9,13 @@ import game
 import numpy as np
 import matplotlib.pyplot as plt
 import game_logging
+import os
 
 NUMBER_OF_ATTEMPTS = 100
 MARKER = 'o'
-COLOR = 'g'
+COLOR= 'w'
+COLOR_1 = 'g'
+COLOR_2 = 'b'
 BACKGROUND_COLOR = 'k'
 EDGE_COLOR='w'
 FONT_COLOR='w'
@@ -51,8 +54,10 @@ class TestStrategy():
 def draw_plot(x_data, y_data, label, x_label, y_label, position):
     ax = fig.add_subplot(position, facecolor=BACKGROUND_COLOR)
     ax.tick_params(color=FONT_COLOR, labelcolor=FONT_COLOR)
-    ax.plot(x_data, y_data, marker=MARKER, color=COLOR, label=label, linewidth=LINEWIDTH)
-    ax.legend(labelcolor=COLOR)
+    ax.plot(x_data, y_data[:,0], marker=MARKER, color=COLOR_1, label=label, linewidth=LINEWIDTH)
+    ax.plot(x_data, y_data[:,1], marker=MARKER, color=COLOR_2, label=label, linewidth=LINEWIDTH)
+
+    ax.legend(labelcolor=[COLOR_1, COLOR_2])
     for spine in ax.spines.values():
         spine.set_edgecolor(EDGE_COLOR)
     ax.set_ylabel(y_label, color=COLOR)
@@ -99,3 +104,8 @@ if __name__ == "__main__":
     draw_plot(number_of_cards_array, np.transpose(np.array([number_of_cards_winning_percentage_first_strategy, number_of_cards_winning_percentage_second_strategy])), ["PlayWithMetric", "PlayWithDistanceCutoff"], x_label[i], y_label[i], position[i])
 
     plt.show()
+
+    my_path = os.path.dirname(os.path.abspath(__file__)) # Figures out the absolute path for you in case your working directory moves around.
+    my_figure_folder="figures"
+    my_file = 'graph.png'
+    fig.savefig(os.path.join(my_path, my_figure_folder, my_file))

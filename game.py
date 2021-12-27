@@ -533,7 +533,7 @@ class PlayWithDistanceCutoffStrategy(Strategy):
             if np.shape(metric_matrix)[0]>1:
                 next_move_matrix=np.delete(metric_matrix, card_position, 0)
                 next_move_matrix[:,pile_number]-= pile.get_top_card()-card
-                if np.min(next_move_matrix)<(self.game.number_of_piles+1):
+                if np.min(next_move_matrix)<(3):#self.game.number_of_piles+1):
                     want_to_draw=False
 
             if self.game.card_playable(self.game.current_player, pile, card):
