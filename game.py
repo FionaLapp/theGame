@@ -10,6 +10,7 @@ import logging
 import sys
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 
 
 LOG_LEVEL = logging.INFO
@@ -21,6 +22,7 @@ LOG_LEVEL = logging.INFO
 LOWEST_PLAYABLE_NUMBER = 2
 DECREASING = "DECREASING"
 INCREASING = "INCREASING"
+NUMBER_OF_ATTEMPTS = 100
 
 # %% configuration
 
@@ -51,9 +53,11 @@ class LoggingMethods():
 
 class ContextManager():
     def __init__(self):
+        GameLoggers.debug_logger.handlers.clear()
+        os.remove('debug.log')
+        GameLoggers.strategy_logger.handlers.clear()
+        os.remove('strategy.log')
         GameLoggers.debug_logger.debug('Context Manager init method called')
-        #GameLoggers.strategy_logger.handlers.clear()
-        #os.remove('strategy.log')
 
     def __enter__(self):
         GameLoggers.debug_logger.debug('enter method called')
@@ -389,7 +393,8 @@ class Game():
             if player.number_of_cards_i_need_to_play > 1:
                 # if I only have one mandatory turn left, it's this turn
                 want_to_draw = False
-            if not want_to_draw and len(player.hand) == 1: #if hand empty then draw
+            if not want_to_draw and len(player.hand) == 1:
+                # if hand empty then draw
                 want_to_draw = True
             # play card
             if self.card_playable(player, pile, card):
@@ -410,7 +415,8 @@ class Game():
                 player.is_my_turn = False
                 if self.drawing_pile == []:
                     print("empty pile")
-                while (len(player.hand) < self.cards_in_hand) and len(self.drawing_pile.cards) != 0:
+                while ((len(player.hand) < self.cards_in_hand) and (
+                        len(self.drawing_pile.cards) != 0)):
                     self.draw_card(player, self.drawing_pile)
 
                 self.set_next_player()
@@ -452,15 +458,16 @@ class Game():
             number_of_players))
 
     def print_hands(self):
-        hand_string=""
+        hand_string = ""
         for player in self.players:
-            hand_string+="{}".format(player.__str__())
+            hand_string += "{}".format(player.__str__())
         return hand_string
 
     def print_piles(self):
-        pile_string=""
+        pile_string = ""
         for pile in self.piles:
-            pile_string+="{} with cards {}".format(pile.__str__(), pile.cards)
+            pile_string += "{} with cards {}".format(
+                pile.__str__(), pile.cards)
         return pile_string
 
     def __str__(self):
@@ -527,7 +534,9 @@ class PlayWithMetricStrategy(Strategy):
             else:
                 if self.game.game_finished():
                     return
-                raise CardNotPlayableError(card, "{} cannot play {} on pile {}".format(self.game.current_player, card, pile))
+                raise CardNotPlayableError(
+                    card, "{} cannot play {} on pile {}".format(
+                        self.game.current_player, card, pile))
                 self.game.play_card(pile, card, want_to_draw)
 
     def basic_metric(self):
@@ -563,22 +572,30 @@ class PlayWithMetricStrategy(Strategy):
         return metric_matrix
 
 
-if __name__ == "__main__":
-    with ContextManager() as manager:
-        win_array=np.zeros(100)
-        for i in range(100):
-            my_strategy = PlayWithMetricStrategy()
-            my_game = my_strategy.game
-
-            my_strategy.start_game(my_game.players[0])
+class TestStrategy():
+    def run_test(number_of_attempts, number_of_cards):
+        win_array = np.zeros(number_of_attempts)
+        for i in range(number_of_attempts):
+            my_strategy = PlayWithMetricStrategy(
+                number_of_cards=number_of_cards)
+            my_strategy.start_game(my_strategy.game.players[0])
             my_strategy.play()
             GameLoggers.strategy_logger.info(
-                "Game won: {}".format(my_game.game_won()))
-            GameLoggers.strategy_logger.info("Game lost: {}".format(
-                my_game.game_lost()))
-
-            GameLoggers.strategy_logger.info("players: {}".format(my_strategy.game.print_hands()))
-            GameLoggers.strategy_logger.info("piles: {}".format(my_strategy.game.print_piles()))
+                "Game won: {}".format(my_strategy.game.game_won()))
+            GameLoggers.strategy_logger.info(
+                "players: {}".format(my_strategy.game.print_hands()))
+            GameLoggers.strategy_logger.info(
+                "piles: {}".format(my_strategy.game.print_piles()))
             if my_strategy.game.game_won():
                 win_array[i] = 1
-        print(np.sum(win_array))
+        return np.sum(win_array)/number_of_attempts
+
+
+if __name__ == "__main__":
+    with ContextManager() as manager:
+        winning_percentage = np.zeros(10)
+        for i in range(1, 10):
+            winning_percentage[i-1] = TestStrategy.run_test(
+                NUMBER_OF_ATTEMPTS, 10*i)
+        plt.plot(winning_percentage)
+        plt.show()
