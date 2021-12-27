@@ -11,6 +11,7 @@ import sys
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+import game_logging
 
 
 LOG_LEVEL = logging.INFO
@@ -24,60 +25,6 @@ DECREASING = "DECREASING"
 INCREASING = "INCREASING"
 NUMBER_OF_ATTEMPTS = 100
 
-# %% configuration
-
-
-class LoggingMethods():
-    def createLogger(name, level, file=None, console_logging=False):
-        # create logger
-        logger = logging.getLogger(name)
-        logger.setLevel(level)
-        if file is not None:
-            # create console handler and set level to debug
-            handler = logging.FileHandler(file)
-            handler.setLevel(level)
-            # create formatter
-            formatter = logging.Formatter('%(levelname)s - %(message)s')
-            # add formatter to handler
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
-        if console_logging:
-            console_handler = logging.StreamHandler(sys.stdout)
-            # console_handler.set_level(level)
-            formatter = logging.Formatter('%(levelname)s - %(message)s')
-            console_handler.setFormatter(formatter)
-            logger.addHandler(console_handler)
-
-        return logger
-
-
-class ContextManager():
-    def __init__(self):
-        GameLoggers.debug_logger.handlers.clear()
-        os.remove('debug.log')
-        GameLoggers.strategy_logger.handlers.clear()
-        os.remove('strategy.log')
-        GameLoggers.debug_logger.debug('Context Manager init method called')
-
-    def __enter__(self):
-        GameLoggers.debug_logger.debug('enter method called')
-        return self
-
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        GameLoggers.debug_logger.debug('closing loggers')
-        GameLoggers.debug_logger.handlers.clear()
-        GameLoggers.strategy_logger.handlers.clear()
-
-
-class GameLoggers():
-    # change log_level to debug in debug_logger to create output in debug.log
-    debug_logger = LoggingMethods.createLogger(
-        "debug_logger", logging.INFO, file="debug.log", console_logging=False)
-    strategy_logger = LoggingMethods.createLogger(
-        "strategy_logger", logging.INFO, file="strategy.log",
-        console_logging=False)
-
-
 # %% errors
 
 
@@ -90,7 +37,7 @@ class InputValidationError(Exception):
     """
 
     def __init__(self, input_value, message="input not valid"):
-        GameLoggers.debug_logger.handlers.clear()
+        game_logging.GameLoggers.debug_logger.handlers.clear()
         self.input_value = input_value
         self.message = message
         super().__init__(self.message)
@@ -105,7 +52,7 @@ class CardNotPlayableError(Exception):
     """
 
     def __init__(self, card, message="card cannot be played"):
-        GameLoggers.debug_logger.handlers.clear()
+        game_logging.GameLoggers.debug_logger.handlers.clear()
         self.card = card
         self.message = message
         super().__init__(self.message)
@@ -123,12 +70,12 @@ class Player:
             game.draw_card(self, drawing_pile)
         self.is_my_turn = False
         self.number_of_cards_i_need_to_play = cards_per_turn
-        GameLoggers.debug_logger.debug("{} initialised successfully".format(
+        game_logging.GameLoggers.debug_logger.debug("{} initialised successfully".format(
             self))
 
     def card_playable(self, card):
         # check if playable
-        GameLoggers.debug_logger.debug("checking if {} playable".format(card))
+        game_logging.GameLoggers.debug_logger.debug("checking if {} playable".format(card))
         if card in self.hand:
             return True
         else:
@@ -145,7 +92,7 @@ class Player:
         """
         if not self.card_playable(card):
             # throw exception
-            GameLoggers.debug_logger.debug("not possible")
+            game_logging.GameLoggers.debug_logger.debug("not possible")
             raise CardNotPlayableError(
                 card, ("Cannot play {} because it is not contained in hand "
                        "{}").format(card, self.hand))
@@ -166,7 +113,7 @@ class Player:
         inside the game object, draw_card must be called for pile and player
         """
         # add card
-        GameLoggers.debug_logger.debug("adding card {} to hand".format(card))
+        game_logging.GameLoggers.debug_logger.debug("adding card {} to hand".format(card))
         self.hand.append(card)
 
     def __str__(self):
@@ -208,7 +155,7 @@ class DrawingPile(Pile):
                     random_index, len(
                         self.cards)))
 
-        GameLoggers.debug_logger.debug("drew random card: {}".format(card))
+        game_logging.GameLoggers.debug_logger.debug("drew random card: {}".format(card))
 
         return card
 
@@ -239,7 +186,7 @@ class PlayingPile(Pile):
         """
         if not self.card_playable(card):
             # throw exception
-            GameLoggers.debug_logger.debug("not possible")
+            game_logging.GameLoggers.debug_logger.debug("not possible")
             raise CardNotPlayableError(
                 card, "Cannot play {} ({}) on pile with top card {}".format(
                     card, self.pile_type, self.get_top_card()))
@@ -247,13 +194,13 @@ class PlayingPile(Pile):
         else:
             # add card to pile
             self.cards.append(card)
-            GameLoggers.debug_logger.debug("adding card {} to pile".format(card
+            game_logging.GameLoggers.debug_logger.debug("adding card {} to pile".format(card
                                                                            ))
 
     def get_top_card(self):
         # get top card
         top_card = self.cards[-1]
-        GameLoggers.debug_logger.debug("getting top card: {}".format(top_card))
+        game_logging.GameLoggers.debug_logger.debug("getting top card: {}".format(top_card))
         return top_card
 
     def __str__(self):
@@ -270,12 +217,12 @@ class DecreasingPile(PlayingPile):
         # check if playable
         top_card = self.get_top_card()
         if card < top_card or card == top_card + 10:
-            GameLoggers.debug_logger.debug(("card {} playable on decreasing "
+            game_logging.GameLoggers.debug_logger.debug(("card {} playable on decreasing "
                                             "pile with top card {}").format(
                                                 card, top_card))
             return True
         else:
-            GameLoggers.debug_logger.debug(("card {} not playable on "
+            game_logging.GameLoggers.debug_logger.debug(("card {} not playable on "
                                             "decreasing pilewith top card {}"
                                             ).format(card, top_card))
             return False
@@ -295,12 +242,12 @@ class IncreasingPile(PlayingPile):
         # check if playable
         top_card = self.get_top_card()
         if card > top_card or card == top_card - 10:
-            GameLoggers.debug_logger.debug(("card {} playable on increasing"
+            game_logging.GameLoggers.debug_logger.debug(("card {} playable on increasing"
                                             "pile with top card {}").format(
                                           card, top_card))
             return True
         else:
-            GameLoggers.debug_logger.debug(("card {} not playable on "
+            game_logging.GameLoggers.debug_logger.debug(("card {} not playable on "
                                             "increasing pile with top card {}"
                                             ).format(card, top_card))
             return False
@@ -368,7 +315,7 @@ class Game():
 
     def game_finished(self):
         # check if finished
-        GameLoggers.debug_logger.debug("checking if finished")
+        game_logging.GameLoggers.debug_logger.debug("checking if finished")
         if self.game_won() or self.game_lost():
             self.finished = True
             return True
@@ -400,14 +347,14 @@ class Game():
             if self.card_playable(player, pile, card):
                 player.remove_card_from_hand(card)
                 pile.play_card(card)
-                GameLoggers.debug_logger.debug("{} plays {} on {} ".format(
+                game_logging.GameLoggers.debug_logger.debug("{} plays {} on {} ".format(
                     player, card, pile))
 
                 # check if game finished
                 if self.game_finished():
                     return
             else:
-                GameLoggers.debug_logger.debug(CardNotPlayableError)
+                game_logging.GameLoggers.debug_logger.debug(CardNotPlayableError)
                 raise CardNotPlayableError(card)
 
             if want_to_draw:
@@ -426,7 +373,7 @@ class Game():
         if drawing_pile.cards != []:
             card = drawing_pile.remove_card()
             player.add_card_to_hand(card)
-            GameLoggers.debug_logger.debug("{} drew {} from {} ".format(
+            game_logging.GameLoggers.debug_logger.debug("{} drew {} from {} ".format(
                 player, card, drawing_pile))
 
     def _create_piles(self, number_of_piles, number_of_cards):
@@ -438,7 +385,7 @@ class Game():
         for i in range(int(number_of_piles / 2)):
             self.piles.append(DecreasingPile(2 * i, number_of_cards))
             self.piles.append(IncreasingPile((2 * i) + 1))
-        GameLoggers.debug_logger.debug("creating {} piles".format(
+        game_logging.GameLoggers.debug_logger.debug("creating {} piles".format(
             number_of_piles))
 
     def _create_players(
@@ -454,7 +401,7 @@ class Game():
                     self,
                     cards_in_hand,
                     cards_per_turn))
-        GameLoggers.debug_logger.debug("creating {} players".format(
+        game_logging.GameLoggers.debug_logger.debug("creating {} players".format(
             number_of_players))
 
     def print_hands(self):
@@ -505,7 +452,7 @@ class PlayFirstTwoStrategy(Strategy):
                 for card in self.game.current_player.hand:
                     if self.game.card_playable(self.game.current_player, pile,
                                                card):
-                        GameLoggers.strategy_logger.info(
+                        game_logging.GameLoggers.strategy_logger.info(
                             "{} playing card {} on pile {}".format(
                                 self.game.current_player, card, pile))
 
@@ -527,7 +474,7 @@ class PlayWithMetricStrategy(Strategy):
             card_position = min_index[0]
             card = self.game.current_player.hand[card_position]
             if self.game.card_playable(self.game.current_player, pile, card):
-                GameLoggers.strategy_logger.info(
+                game_logging.GameLoggers.strategy_logger.info(
                     "{} playing card {} on pile {}".format(
                                 self.game.current_player, card, pile))
                 self.game.play_card(pile, card, want_to_draw)
@@ -572,30 +519,14 @@ class PlayWithMetricStrategy(Strategy):
         return metric_matrix
 
 
-class TestStrategy():
-    def run_test(number_of_attempts, number_of_cards):
-        win_array = np.zeros(number_of_attempts)
-        for i in range(number_of_attempts):
-            my_strategy = PlayWithMetricStrategy(
-                number_of_cards=number_of_cards)
-            my_strategy.start_game(my_strategy.game.players[0])
-            my_strategy.play()
-            GameLoggers.strategy_logger.info(
-                "Game won: {}".format(my_strategy.game.game_won()))
-            GameLoggers.strategy_logger.info(
-                "players: {}".format(my_strategy.game.print_hands()))
-            GameLoggers.strategy_logger.info(
-                "piles: {}".format(my_strategy.game.print_piles()))
-            if my_strategy.game.game_won():
-                win_array[i] = 1
-        return np.sum(win_array)/number_of_attempts
-
-
 if __name__ == "__main__":
-    with ContextManager() as manager:
-        winning_percentage = np.zeros(10)
-        for i in range(1, 10):
-            winning_percentage[i-1] = TestStrategy.run_test(
-                NUMBER_OF_ATTEMPTS, 10*i)
-        plt.plot(winning_percentage)
-        plt.show()
+    with game_logging.ContextManager() as manager:
+        my_strategy = PlayWithMetricStrategy()
+        my_strategy.start_game(my_strategy.game.players[0])
+        my_strategy.play()
+        print(
+            "Game won: {}".format(my_strategy.game.game_won()))
+        print(
+            "players: {}".format(my_strategy.game.print_hands()))
+        print(
+            "piles: {}".format(my_strategy.game.print_piles()))
