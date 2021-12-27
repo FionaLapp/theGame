@@ -1,0 +1,23 @@
+# A TO-DO-list (or something like that)
+
+## nice-to-haves:
+- clean up logging
+- plot current strategy function for other inputs
+- plot current strategy function with error bars
+- not looping over lists when calculating basic_metric. Somehow use numpy instead?
+- not calculating can_play_matrix and basic_metric both for each step (basic metric should suffice)
+
+## a bit further down the road
+- add GUI
+- add reinforcement learning
+
+## strategies I'll probably never implement
+- remembering the cards that have already been played for calculating the metric
+- playing more than two cards at once if you have one that has a distance of less than (number_of_cards/number_of_piles) from a top-card
+- thinking ahead by one step when playing a card (i.e. playing 2 cards at once?)
+- looking at everyone else's cards instead of just own cards (but then what?)
+
+## questions worth thinking about
+- is the succes-percentage vs. number_of_cards plot a cumulative Gaussian distribution? If so, is there a mathematical explanation? (Thanks for asking, Clara, but I have no idea)
+- what would happen if there was a counter-player who tried to give everyone the worst possible cards instead of drawing them at random?
+- Can I program a strategy that more-or-less implements what humans would do, and if so, how much better or worse would it perform compared to reinforcement learning?
