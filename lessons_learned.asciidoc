@@ -4,13 +4,14 @@ due to an unhealthy level of curiosity concerning the essentially irrelevant str
 of a game I've played three times so far), here are some of the lessons that I want future-me
 to remember:
 
-- CLEAN CODE IS EVERYTHING!!!!! (I already knew this, of course, but I need to start acting like I know it, too)
-- no, but really, clean code is everything.
+- *_CLEAN CODE IS EVERYTHING!!!!!_* (I already knew this, of course, but I need to start acting like I know it, too)
+- no, but really, clean code *IS* everything.
 - cProfile is a lifesaver when it comes to slow code
 - logging can slow you down if you're doing large calculations. But also, it's important, so it's worth figuring out a way to do it with as little overhead as possible (and having an option to disable it).
 - it really helps to have someone look over your code (thanks, Clara)
 - going in with a (rough) plan probably saved me a lot of time
 - clean. code. is. everything.
 - writing unit tests might be annoying (and you can probably get away with not writing a test for literally everything, if you're in a hurry), but having tests for core functions does save time in the long run.
+- apparently I like writing lists and looking up asciidoc formatting as a form of procrastination
 
 ... to be continued (hopefully)
