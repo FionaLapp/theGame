@@ -5,6 +5,9 @@
 - plot current strategy function for other inputs
 - plot current strategy function with error bars
 - not looping over lists when calculating basic_metric. Somehow use numpy instead?
+- add number of already-played cards to state
+- add and analyse jump count
+- clean up plotting file
 
 ## a bit further down the road
 - add GUI
