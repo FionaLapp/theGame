@@ -55,11 +55,11 @@ def test_pile_creation():
     my_drawing_pile = my_game.drawing_pile
     assert my_increasing_pile.cards == [game.LOWEST_PLAYABLE_NUMBER - 1]
     assert my_increasing_pile.id_number == 1
-    assert my_increasing_pile.get_top_card() == game.LOWEST_PLAYABLE_NUMBER - 1
+    assert my_increasing_pile.top_card == game.LOWEST_PLAYABLE_NUMBER - 1
 
     assert my_decreasing_pile.cards == [NUMBER_OF_CARDS]
     assert my_decreasing_pile.id_number == 0
-    assert my_decreasing_pile.get_top_card() == NUMBER_OF_CARDS
+    assert my_decreasing_pile.top_card == NUMBER_OF_CARDS
 
     assert len(my_drawing_pile.cards) == NUMBER_OF_CARDS - \
         2 - CARDS_IN_HAND * NUMBER_OF_PLAYERS
@@ -82,3 +82,31 @@ def test_game_creation():
         number_of_cards=NUMBER_OF_CARDS)
     assert len(my_game.piles) == NUMBER_OF_PILES
     assert len(my_game.players) == NUMBER_OF_PLAYERS
+
+def test_game_result_with_metric_win():
+    """
+    Play a game
+
+    Returns
+    -------
+    None.
+
+    """
+    strategies=[game.PlayFirstTwoStrategy,game.PlayWithMetricStrategy, game.PlayWithDistanceCutoffStrategy]
+    #as many piles as there are cards --> guaranteed win
+    for strategy in strategies:
+        my_strategy=strategy(
+            cards_in_hand=CARDS_IN_HAND,
+            number_of_players=NUMBER_OF_PLAYERS,
+            number_of_piles=NUMBER_OF_CARDS,
+            cards_per_turn=CARDS_PER_TURN,
+            number_of_cards=NUMBER_OF_CARDS)
+        my_strategy.start_game(my_strategy.game.players[0])
+        my_strategy.play()
+        my_game=my_strategy.game
+        assert my_game.game_finished()
+        assert my_game.game_won()
+        assert (not my_game.game_lost())
+        assert len(my_game.drawing_pile.cards)==0
+        for player in my_game.players:
+            assert len(player.hand)==0

@@ -21,6 +21,6 @@ number_of_cards_array=[*range(10, 110, 10)]
 cProfile.run('plotting.TestStrategy.run_tests(number_of_cards_array)', 'profiling_log')
 #cProfile.run('logging_test()', 'profiling')
 
-p = pstats.Stats('profiling')
+p = pstats.Stats('profiling_log')
 p.strip_dirs().sort_stats(SortKey.CUMULATIVE, SortKey.TIME).print_stats()
 
