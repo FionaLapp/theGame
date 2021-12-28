@@ -138,3 +138,21 @@ def test_game_result_with_metric_lost():
         assert my_game.game_finished()
         assert (not my_game.game_won())
         assert (my_game.game_lost())
+
+def test_card_playable():
+    my_game = game.Game(
+        cards_in_hand=CARDS_IN_HAND,
+        number_of_players=NUMBER_OF_PLAYERS,
+        number_of_piles=NUMBER_OF_PILES,
+        cards_per_turn=CARDS_PER_TURN,
+        number_of_cards=NUMBER_OF_CARDS)
+    my_player=my_game.players[0]
+    my_player.hand.append(NUMBER_OF_CARDS+1)
+    my_player.hand.append(0)
+    decreasing_piles, increasing_piles=my_game.separate_piles()
+    print(my_game.players[0])
+    #pile0 should be decreasing, pile1 increasing
+    assert my_game.card_playable(my_player, decreasing_piles[0], 0)
+    assert not my_game.card_playable(my_player, decreasing_piles[0], NUMBER_OF_CARDS +1)
+    assert my_game.card_playable(my_player, increasing_piles[0], NUMBER_OF_CARDS +1)
+    assert not my_game.card_playable(my_player, increasing_piles[0], 0)
