@@ -131,3 +131,6 @@ dmypy.json
 
 #Figures
 *.png
+
+#profiling log
+profiling_log
