@@ -10,6 +10,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import game_logging
 import os
+# importing cProfile
+import cProfile #to check what takes longest
 
 NUMBER_OF_ATTEMPTS = 100
 MARKER = 'o'
@@ -27,7 +29,7 @@ TITLE_DICT={'fontsize': TITLE_SIZE, 'color': FONT_COLOR}
 
 
 class TestStrategy():
-    def run_test(number_of_attempts=100, cards_in_hand=6,
+    def run_one_test(number_of_attempts=100, cards_in_hand=6,
                  number_of_players=4, number_of_piles=4, cards_per_turn=2,
                  number_of_cards=100, strategy=game.PlayWithDistanceCutoffStrategy):
         win_array = np.zeros(number_of_attempts)
@@ -49,6 +51,31 @@ class TestStrategy():
                 win_array[i] = 1
         print(np.sum(win_array)/number_of_attempts)
         return np.sum(win_array)/number_of_attempts
+
+    def run_tests(number_of_cards_array):
+        with game_logging.ContextManager() as manager:
+
+            number_of_players_array=[*range(1, 10, 1)]
+            number_of_piles_array=[*range(2, 8, 2)]
+            number_of_cards_winning_percentage_first_strategy = np.zeros(len(number_of_cards_array))
+            number_of_cards_winning_percentage_second_strategy = np.zeros(len(number_of_cards_array))
+
+            number_of_players_winning_percentage = np.zeros(len(number_of_players_array))
+            number_of_piles_winning_percentage = np.zeros(len(number_of_piles_array))
+            for i, j in enumerate(number_of_cards_array):
+                number_of_cards_winning_percentage_first_strategy[i] = TestStrategy.run_one_test(
+                    number_of_attempts=NUMBER_OF_ATTEMPTS, number_of_cards=j, strategy=game.PlayWithMetricStrategy)
+                number_of_cards_winning_percentage_second_strategy[i] = TestStrategy.run_one_test(
+                    number_of_attempts=NUMBER_OF_ATTEMPTS, number_of_cards=j, strategy=game.PlayWithDistanceCutoffStrategy)
+
+            # for i, j in enumerate(number_of_players_array):
+            #     number_of_players_winning_percentage[i] = TestStrategy.run_test(
+            #         number_of_attempts=NUMBER_OF_ATTEMPTS, number_of_players=j, number_of_cards=50)
+            # for i, j in enumerate(number_of_piles_array):
+            #     number_of_cards_winning_percentage[i] = TestStrategy.run_test(
+            #         number_of_attempts=NUMBER_OF_ATTEMPTS, number_of_piles=j, number_of_cards=100)
+            return number_of_cards_winning_percentage_first_strategy, number_of_cards_winning_percentage_second_strategy
+
 #%% plotting helper
 
 def draw_plot(x_data, y_data, label, x_label, y_label, position):
@@ -68,28 +95,8 @@ def draw_plot(x_data, y_data, label, x_label, y_label, position):
 #%% main
 
 if __name__ == "__main__":
-    with game_logging.ContextManager() as manager:
-        number_of_cards_array=[*range(10, 110, 10)]
-        number_of_players_array=[*range(1, 10, 1)]
-        number_of_piles_array=[*range(2, 8, 2)]
-        number_of_cards_winning_percentage_first_strategy = np.zeros(len(number_of_cards_array))
-        number_of_cards_winning_percentage_second_strategy = np.zeros(len(number_of_cards_array))
-
-        number_of_players_winning_percentage = np.zeros(len(number_of_players_array))
-        number_of_piles_winning_percentage = np.zeros(len(number_of_piles_array))
-        for i, j in enumerate(number_of_cards_array):
-            number_of_cards_winning_percentage_first_strategy[i] = TestStrategy.run_test(
-                number_of_attempts=NUMBER_OF_ATTEMPTS, number_of_cards=j, strategy=game.PlayWithMetricStrategy)
-            number_of_cards_winning_percentage_second_strategy[i] = TestStrategy.run_test(
-                number_of_attempts=NUMBER_OF_ATTEMPTS, number_of_cards=j, strategy=game.PlayWithDistanceCutoffStrategy)
-
-        # for i, j in enumerate(number_of_players_array):
-        #     number_of_players_winning_percentage[i] = TestStrategy.run_test(
-        #         number_of_attempts=NUMBER_OF_ATTEMPTS, number_of_players=j, number_of_cards=50)
-        # for i, j in enumerate(number_of_piles_array):
-        #     number_of_cards_winning_percentage[i] = TestStrategy.run_test(
-        #         number_of_attempts=NUMBER_OF_ATTEMPTS, number_of_piles=j, number_of_cards=100)
-
+    number_of_cards_array=[*range(10, 110, 10)]
+    number_of_cards_winning_percentage_first_strategy, number_of_cards_winning_percentage_second_strategy = TestStrategy.run_tests(number_of_cards_array)
 
 
 
@@ -97,7 +104,7 @@ if __name__ == "__main__":
     label =['number_of_cards', 'number_of_players', 'number_of_piles']
     x_label = ['number_of_cards', 'number_of_players', 'number_of_piles']
     y_label = ['success percentage','success percentage','success percentage']
-    x_data= [number_of_cards_winning_percentage_first_strategy, number_of_players_winning_percentage, number_of_piles_winning_percentage]
+    #x_data= [number_of_cards_winning_percentage_first_strategy, number_of_players_winning_percentage, number_of_piles_winning_percentage]
     position=[111, 111,111]# [311, 312, 313]
     fig = plt.figure(figsize=FIG_SIZE, facecolor=BACKGROUND_COLOR, edgecolor=EDGE_COLOR)
     i=0

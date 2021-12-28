@@ -18,7 +18,7 @@ import game_logging
 #         print(number_of_cards_array)
 
 number_of_cards_array=[*range(10, 110, 10)]
-cProfile.run('plotting.TestStrategy.run_tests(number_of_cards_array)', 'profiling')
+cProfile.run('plotting.TestStrategy.run_tests(number_of_cards_array)', 'profiling_log')
 #cProfile.run('logging_test()', 'profiling')
 
 p = pstats.Stats('profiling')

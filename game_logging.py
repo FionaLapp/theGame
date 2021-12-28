@@ -55,9 +55,9 @@ class ContextManager():
 class GameLoggers():
     # change log_level to debug in debug_logger to create output in debug.log
     debug_logger = LoggingMethods.createLogger(
-        "debug_logger", logging.INFO, file="debug.log", console_logging=False)
+        "debug_logger", logging.WARNING, file="debug.log", console_logging=False)
     strategy_logger = LoggingMethods.createLogger(
-        "strategy_logger", logging.INFO, file="strategy.log",
+        "strategy_logger", logging.WARNING, file="strategy.log",
         console_logging=False)
 
 
