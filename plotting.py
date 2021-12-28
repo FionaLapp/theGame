@@ -5,7 +5,7 @@ Created on Mon Dec 27 11:19:45 2021
 @author: Fiona
 """
 
-import game
+import the_game
 import numpy as np
 import matplotlib.pyplot as plt
 import game_logging
@@ -31,7 +31,7 @@ TITLE_DICT={'fontsize': TITLE_SIZE, 'color': FONT_COLOR}
 class TestStrategy():
     def run_one_test(number_of_attempts=100, cards_in_hand=6,
                  number_of_players=4, number_of_piles=4, cards_per_turn=2,
-                 number_of_cards=100, strategy=game.PlayWithDistanceCutoffStrategy):
+                 number_of_cards=100, strategy=the_game.PlayWithDistanceCutoffStrategy):
         win_array = np.zeros(number_of_attempts)
         for i in range(number_of_attempts):
             my_strategy = strategy(
@@ -64,9 +64,9 @@ class TestStrategy():
             number_of_piles_winning_percentage = np.zeros(len(number_of_piles_array))
             for i, j in enumerate(number_of_cards_array):
                 number_of_cards_winning_percentage_first_strategy[i] = TestStrategy.run_one_test(
-                    number_of_attempts=NUMBER_OF_ATTEMPTS, number_of_cards=j, strategy=game.PlayWithMetricStrategy)
+                    number_of_attempts=NUMBER_OF_ATTEMPTS, number_of_cards=j, strategy=the_game.PlayWithMetricStrategy)
                 number_of_cards_winning_percentage_second_strategy[i] = TestStrategy.run_one_test(
-                    number_of_attempts=NUMBER_OF_ATTEMPTS, number_of_cards=j, strategy=game.PlayWithDistanceCutoffStrategy)
+                    number_of_attempts=NUMBER_OF_ATTEMPTS, number_of_cards=j, strategy=the_game.PlayWithDistanceCutoffStrategy)
 
             # for i, j in enumerate(number_of_players_array):
             #     number_of_players_winning_percentage[i] = TestStrategy.run_test(
