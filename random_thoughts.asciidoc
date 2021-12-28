@@ -1,0 +1,5 @@
+
+# PlayWithMetricStrategy
+
+- Less cards lead to better performance - might be gaussian?
+- When changing number of cards and number of players, more players seem to be counterproductive at a low number of cards, but as the number of cards increases, less players are also counterproductive. The spike (on the succes(no of players) plot travels right for higher number of cards, but would need more attempts to confirm this.
