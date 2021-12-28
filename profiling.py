@@ -16,15 +16,8 @@ import game_test
 
 
 
-# number_of_cards_array=[*range(10, 110, 10)]
-# cProfile.run('plotting.TestStrategy.run_tests(number_of_cards_array)', 'profiling_log')
-# #cProfile.run('logging_test()', 'profiling')
-
-# p = pstats.Stats('profiling_log')
-# p.strip_dirs().sort_stats(SortKey.CUMULATIVE, SortKey.TIME).print_stats()
-
 number_of_cards_array=[*range(10, 110, 10)]
-cProfile.run('game_test.test_game_result_with_metric_lost()', 'profiling_log')
+cProfile.run('plotting.TestStrategy.run_tests(number_of_cards_array)', 'profiling_log')
 #cProfile.run('logging_test()', 'profiling')
 
 p = pstats.Stats('profiling_log')

@@ -93,14 +93,7 @@ class Player:
         and player
         This needs to throw an exception if the card is not playable
         """
-        if not self.card_playable(card):
-            # throw exception
-            game_logging.GameLoggers.debug_logger.debug("not possible")
-            raise CardNotPlayableError(
-                card, ("Cannot play {} because it is not contained in hand "
-                       "{}").format(card, self.hand))
-
-        else:
+        try:
             # remove card from hand
             self.hand.remove(card)
             # decrease number of cards I need to play
@@ -108,6 +101,15 @@ class Player:
                 self.number_of_cards_i_need_to_play -= 1
             else:
                 self.number_of_cards_i_need_to_play = 0
+        except ValueError:
+            if not self.card_playable(card):
+                # throw exception
+                game_logging.GameLoggers.debug_logger.debug("not possible")
+                raise CardNotPlayableError(
+                    card, ("Cannot play {} because it is not contained in hand "
+                           "{}").format(card, self.hand))
+            else:
+                raise ValueError
 
     def add_card_to_hand(self, card):
         """
@@ -202,12 +204,6 @@ class PlayingPile(Pile):
             game_logging.GameLoggers.debug_logger.debug("adding card {} to pile".format(card
                                                                            ))
 
-    # def get_top_card(self):
-    #     # get top card
-    #     top_card = self.cards[-1]
-    #     game_logging.GameLoggers.debug_logger.debug("getting top card: {}".format(top_card))
-    #     return top_card
-
     def __str__(self):
         return "Playing Pile {}".format(self.id_number)
 
@@ -294,6 +290,17 @@ class Game():
         self.current_player = None
         self.finished = False
         self.basic_metric = None
+    def separate_piles(self):
+        decreasing_piles=[]
+        increasing_piles=[]
+        for pile in self.piles:
+            if isinstance(pile, DecreasingPile):
+                decreasing_piles.append(pile)
+            elif isinstance(pile, IncreasingPile):
+                increasing_piles.append(pile)
+            else:
+                raise InputValidationError(pile, "weird pile type")
+        return decreasing_piles, increasing_piles
 
     def game_won(self):
         if self.drawing_pile.cards != []:
@@ -341,7 +348,7 @@ class Game():
     #     return can_play_matrix
 
     def card_playable(self, player, pile, card):
-        return (player.card_playable(card) and pile.card_playable(card))
+        return ((card in player.hand) and pile.card_playable(card))
 
     def play_card(self, pile, card, want_to_draw):
         if not self.game_finished():
@@ -437,7 +444,7 @@ class Game():
             (len(player.hand), len(self.piles)), dtype=int)
         for i, card in enumerate(player.hand):
             for j, pile in enumerate(self.piles):
-                if self.card_playable(player, pile, card):
+                if pile.card_playable(card): #only check if playable on pile since it should definitely be in hand
                     if isinstance(pile, DecreasingPile):
                         metric_matrix[i, j] = pile.top_card-card
                     elif isinstance(pile, IncreasingPile):
@@ -492,8 +499,7 @@ class PlayFirstTwoStrategy(Strategy):
             want_to_draw = True
             for pile in self.game.piles:
                 for card in self.game.current_player.hand:
-                    if self.game.card_playable(self.game.current_player, pile,
-                                               card):
+                    if pile.card_playable(card): # only check for pile playable since card is in hand
                         game_logging.GameLoggers.strategy_logger.info(
                             "{} playing card {} on pile {}".format(
                                 self.game.current_player, card, pile))
@@ -515,7 +521,7 @@ class PlayWithMetricStrategy(Strategy):
             pile = self.game.piles[pile_number]
             card_position = min_index[0]
             card = self.game.current_player.hand[card_position]
-            if self.game.card_playable(self.game.current_player, pile, card):
+            if pile.card_playable(card): # only check for pile since card is in hand
                 game_logging.GameLoggers.strategy_logger.info(
                     "{} playing card {} on pile {}".format(
                                 self.game.current_player, card, pile))
@@ -546,7 +552,7 @@ class PlayWithDistanceCutoffStrategy(Strategy):
                 if np.min(next_move_matrix)<(3):#self.game.number_of_piles+1):
                     want_to_draw=False
 
-            if self.game.card_playable(self.game.current_player, pile, card):
+            if pile.card_playable(card): #only check for pile since card is in hand
                 game_logging.GameLoggers.strategy_logger.info(
                     "{} playing card {} on pile {}".format(
                                 self.game.current_player, card, pile))
