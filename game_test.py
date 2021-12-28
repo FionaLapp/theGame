@@ -12,6 +12,8 @@ NUMBER_OF_PLAYERS = 1
 NUMBER_OF_PILES = 2
 CARDS_PER_TURN = 1
 NUMBER_OF_CARDS = 10
+STRATEGIES=[game.PlayFirstTwoStrategy,game.PlayWithMetricStrategy, game.PlayWithDistanceCutoffStrategy]
+
 
 
 def test_player_creation():
@@ -92,9 +94,8 @@ def test_game_result_with_metric_win():
     None.
 
     """
-    strategies=[game.PlayFirstTwoStrategy,game.PlayWithMetricStrategy, game.PlayWithDistanceCutoffStrategy]
     #as many piles as there are cards --> guaranteed win
-    for strategy in strategies:
+    for strategy in STRATEGIES:
         my_strategy=strategy(
             cards_in_hand=CARDS_IN_HAND,
             number_of_players=NUMBER_OF_PLAYERS,
@@ -110,3 +111,28 @@ def test_game_result_with_metric_win():
         assert len(my_game.drawing_pile.cards)==0
         for player in my_game.players:
             assert len(player.hand)==0
+
+def test_game_result_with_metric_win():
+    """
+    Play a game
+
+    Returns
+    -------
+    None.
+
+    """
+    #as many piles as there are cards --> guaranteed win
+    for strategy in STRATEGIES:
+        my_strategy=strategy(
+            cards_in_hand=10,
+            number_of_players=1,
+            number_of_piles=0,
+            cards_per_turn=CARDS_PER_TURN,
+            number_of_cards=NUMBER_OF_CARDS)
+        my_strategy.start_game(my_strategy.game.players[0])
+        my_strategy.play()
+        my_game=my_strategy.game
+        assert my_game.game_finished()
+        assert (not my_game.game_won())
+        assert (my_game.game_lost())
+        assert len(my_game.drawing_pile.cards)==90
