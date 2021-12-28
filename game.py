@@ -13,6 +13,9 @@ import os
 import matplotlib.pyplot as plt
 import game_logging
 
+# importing cProfile
+import cProfile #to check what takes longest
+
 
 LOG_LEVEL = logging.INFO
 # CARDS_IN_HAND=6
@@ -168,6 +171,7 @@ class PlayingPile(Pile):
     def __init__(self, id_number):
         super().__init__()
         self.id_number = id_number
+        self.top_card=None
 
     @abstractmethod
     def card_playable(self, card):
@@ -189,19 +193,20 @@ class PlayingPile(Pile):
             game_logging.GameLoggers.debug_logger.debug("not possible")
             raise CardNotPlayableError(
                 card, "Cannot play {} ({}) on pile with top card {}".format(
-                    card, self.pile_type, self.get_top_card()))
+                    card, self.pile_type, self.top_card))
 
         else:
             # add card to pile
             self.cards.append(card)
+            self.top_card = card
             game_logging.GameLoggers.debug_logger.debug("adding card {} to pile".format(card
                                                                            ))
 
-    def get_top_card(self):
-        # get top card
-        top_card = self.cards[-1]
-        game_logging.GameLoggers.debug_logger.debug("getting top card: {}".format(top_card))
-        return top_card
+    # def get_top_card(self):
+    #     # get top card
+    #     top_card = self.cards[-1]
+    #     game_logging.GameLoggers.debug_logger.debug("getting top card: {}".format(top_card))
+    #     return top_card
 
     def __str__(self):
         return "Playing Pile {}".format(self.id_number)
@@ -212,10 +217,11 @@ class DecreasingPile(PlayingPile):
         super().__init__(id_number)
         self.pile_type = DECREASING
         self.cards.append(number_of_cards)
+        self.top_card=number_of_cards
 
     def card_playable(self, card):
         # check if playable
-        top_card = self.get_top_card()
+        top_card = self.top_card
         if card < top_card or card == top_card + 10:
             game_logging.GameLoggers.debug_logger.debug(("card {} playable on decreasing "
                                             "pile with top card {}").format(
@@ -229,7 +235,7 @@ class DecreasingPile(PlayingPile):
 
     def __str__(self):
         return "Decreasing Pile {} with top card {}".format(
-            self.id_number, self.get_top_card())
+            self.id_number, self.top_card)
 
 
 class IncreasingPile(PlayingPile):
@@ -237,10 +243,11 @@ class IncreasingPile(PlayingPile):
         super().__init__(id_number)
         self.pile_type = INCREASING
         self.cards.append(LOWEST_PLAYABLE_NUMBER - 1)
+        self.top_card=LOWEST_PLAYABLE_NUMBER - 1
 
     def card_playable(self, card):
         # check if playable
-        top_card = self.get_top_card()
+        top_card = self.top_card
         if card > top_card or card == top_card - 10:
             game_logging.GameLoggers.debug_logger.debug(("card {} playable on increasing"
                                             "pile with top card {}").format(
@@ -254,7 +261,7 @@ class IncreasingPile(PlayingPile):
 
     def __str__(self):
         return "Increasing Pile {} with top card {}".format(
-            self.id_number, self.get_top_card())
+            self.id_number, self.top_card)
 
 # %% Game
 
@@ -286,6 +293,7 @@ class Game():
 
         self.current_player = None
         self.finished = False
+        self.basic_metric = None
 
     def game_won(self):
         if self.drawing_pile.cards != []:
@@ -303,8 +311,8 @@ class Game():
         if not self.game_won() and not self.current_player.hand == []:
             # there are still cards that haven't been played
             # true if player can play, false otherwise
-            can_play_matrix = self.can_play(self.current_player)
-            return np.all(np.invert(can_play_matrix))  # all have to be true
+            #can_play_matrix = self.can_play(self.current_player)
+            return np.array_equal(self.basic_metric, (self.number_of_cards+1)*np.ones(np.shape(self.basic_metric)))  # all have to be true
 
     def set_next_player(self):
         next_player_number = (self.current_player.id_number + 1
@@ -321,15 +329,16 @@ class Game():
             return True
         return False
 
-    def can_play(self, player):
-        can_play_matrix = np.zeros(
-            (len(
-                player.hand), len(
-                self.piles)), dtype=bool)
-        for i, card in enumerate(player.hand):
-            for j, pile in enumerate(self.piles):
-                can_play_matrix[i, j] = self.card_playable(player, pile, card)
-        return can_play_matrix
+    # def can_play(self, player):
+    #     # can_play_matrix = np.zeros(
+    #     #     (len(
+    #     #         player.hand), len(
+    #     #         self.piles)), dtype=bool)
+    #     # for i, card in enumerate(player.hand):
+    #     #     for j, pile in enumerate(self.piles):
+    #     #         can_play_matrix[i, j] = self.card_playable(player, pile, card)
+
+    #     return can_play_matrix
 
     def card_playable(self, player, pile, card):
         return (player.card_playable(card) and pile.card_playable(card))
@@ -404,6 +413,37 @@ class Game():
         game_logging.GameLoggers.debug_logger.debug("creating {} players".format(
             number_of_players))
 
+    def calculate_basic_metric(self):
+        """
+        Creates a distance matrix for the strategy's game's current player with
+        maximal value (number of cards +1) for impossible moves, distances
+        otherwise (and -10 for jumps).
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        metric_matrix : numpy.array
+            A distance matrix with higher values for worse cards (jumps have
+            negative values) and the highest value for impossible moves.
+
+        """
+        player = self.current_player
+        # create matrix and fill it with highest possible metric so that
+        # impossible moves are never played
+        metric_matrix = (self.number_of_cards + 1) * np.ones(
+            (len(player.hand), len(self.piles)), dtype=int)
+        for i, card in enumerate(player.hand):
+            for j, pile in enumerate(self.piles):
+                if self.card_playable(player, pile, card):
+                    if isinstance(pile, DecreasingPile):
+                        metric_matrix[i, j] = pile.top_card-card
+                    elif isinstance(pile, IncreasingPile):
+                        metric_matrix[i, j] = card-pile.top_card
+        self.basic_metric=metric_matrix
+
     def print_hands(self):
         hand_string = ""
         for player in self.players:
@@ -442,38 +482,8 @@ class Strategy(metaclass=ABCMeta):
             raise InputValidationError(
                 player, "Player does not participate in game")
         self.game.current_player = player
+        self.game.calculate_basic_metric()
 
-    def basic_metric(self):
-        """
-        Creates a distance matrix for the strategy's game's current player with
-        maximal value (number of cards +1) for impossible moves, distances
-        otherwise (and -10 for jumps).
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        metric_matrix : numpy.array
-            A distance matrix with higher values for worse cards (jumps have
-            negative values) and the highest value for impossible moves.
-
-        """
-        game = self.game
-        player = game.current_player
-        # create matrix and fill it with highest possible metric so that
-        # impossible moves are never played
-        metric_matrix = (game.number_of_cards + 1) * np.ones(
-            (len(player.hand), len(game.piles)), dtype=int)
-        for i, card in enumerate(player.hand):
-            for j, pile in enumerate(game.piles):
-                if game.card_playable(player, pile, card):
-                    if isinstance(pile, DecreasingPile):
-                        metric_matrix[i, j] = pile.get_top_card()-card
-                    elif isinstance(pile, IncreasingPile):
-                        metric_matrix[i, j] = card-pile.get_top_card()
-        return metric_matrix
 
 
 class PlayFirstTwoStrategy(Strategy):
@@ -497,8 +507,8 @@ class PlayWithMetricStrategy(Strategy):
     def play(self):
         while not self.game.finished:
             want_to_draw = True
-            self.metric_matrix = self.basic_metric()
-            metric_matrix = self.metric_matrix
+            self.game.calculate_basic_metric()
+            metric_matrix = self.game.basic_metric
             min_index = np.unravel_index(np.argmin(metric_matrix, axis=None),
                                          metric_matrix.shape)
             pile_number = min_index[1]
@@ -522,8 +532,8 @@ class PlayWithDistanceCutoffStrategy(Strategy):
     def play(self):
         while not self.game.finished:
             want_to_draw = True
-            self.metric_matrix = self.basic_metric()
-            metric_matrix = self.metric_matrix
+            self.game.calculate_basic_metric()
+            metric_matrix = self.game.basic_metric
             min_index = np.unravel_index(np.argmin(metric_matrix, axis=None),
                                          metric_matrix.shape)
             pile_number = min_index[1]
@@ -532,7 +542,7 @@ class PlayWithDistanceCutoffStrategy(Strategy):
             card = self.game.current_player.hand[card_position]
             if np.shape(metric_matrix)[0]>1:
                 next_move_matrix=np.delete(metric_matrix, card_position, 0)
-                next_move_matrix[:,pile_number]-= pile.get_top_card()-card
+                next_move_matrix[:,pile_number]-= pile.top_card-card
                 if np.min(next_move_matrix)<(3):#self.game.number_of_piles+1):
                     want_to_draw=False
 
@@ -555,9 +565,13 @@ class PlayWithDistanceCutoffStrategy(Strategy):
 
 if __name__ == "__main__":
     with game_logging.ContextManager() as manager:
-        my_strategy = PlayWithDistanceCutoffStrategy(number_of_players=10, number_of_cards=50)
+
+        my_strategy = PlayWithDistanceCutoffStrategy(number_of_players=4, number_of_cards=50)
         my_strategy.start_game(my_strategy.game.players[0])
         my_strategy.play()
+
+        cProfile.run('my_strategy.play()')
+
         print(
             "Game won: {}".format(my_strategy.game.game_won()))
         print(
