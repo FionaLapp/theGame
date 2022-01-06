@@ -26,7 +26,7 @@ class Environment():
         number_of_cards=NUMBER_OF_CARDS)
         self.game.current_player=self.game.players[0]
         self.STATE_SPACE_SIZE=(1, self.game.number_of_players*self.game.cards_in_hand+self.game.number_of_piles, 1)
-        self.ACTION_SPACE_SIZE=2*NUMBER_OF_CARDS*NUMBER_OF_PILES # 3 neurons, one each for pile, card, want_to_draw
+        self.ACTION_SPACE_SIZE=2*(NUMBER_OF_CARDS-2)*NUMBER_OF_PILES # 3 neurons, one each for pile, card, want_to_draw
         self.MOST_NEGATIVE_REWARD=-(self.game.number_of_cards+1)
         self.game_over=False
 
@@ -61,6 +61,7 @@ class Environment():
             print("card played:", card, pile_number)
             reward=self.reward(card, self.game.piles[pile_number])
             self.game.play_card(self.game.piles[pile_number], card, want_to_draw)
+            print(self.game.players[0])
             if self.game.finished:
                 self.game_over=True
             return self.game , reward, self.game_over

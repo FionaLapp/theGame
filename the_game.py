@@ -323,6 +323,10 @@ class Game():
             #can_play_matrix = self.can_play(self.current_player)
             return np.array_equal(self.basic_metric, (self.number_of_cards+1)*np.ones(np.shape(self.basic_metric)))  # all have to be true
 
+    def start_game(self,player_id=0):
+        self.current_player = self.players[player_id]
+        self.calculate_basic_metric()
+
     def set_next_player(self):
         next_player_number = (self.current_player.id_number + 1
                               ) % self.number_of_players
@@ -382,7 +386,9 @@ class Game():
                     print("empty pile")
                 while ((len(player.hand) < self.cards_in_hand) and (
                         len(self.drawing_pile.cards) != 0)):
+
                     self.draw_card(player, self.drawing_pile)
+                    game_logging.GameLoggers.strategy_logger.warn(player.__str__())
 
                 self.set_next_player()
 

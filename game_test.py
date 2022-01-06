@@ -150,9 +150,32 @@ def test_card_playable():
     my_player.hand.append(NUMBER_OF_CARDS+1)
     my_player.hand.append(0)
     decreasing_piles, increasing_piles=my_game.separate_piles()
-    print(my_game.players[0])
+    #print(my_game.players[0])
     #pile0 should be decreasing, pile1 increasing
     assert my_game.card_playable(my_player, decreasing_piles[0], 0)
     assert not my_game.card_playable(my_player, decreasing_piles[0], NUMBER_OF_CARDS +1)
     assert my_game.card_playable(my_player, increasing_piles[0], NUMBER_OF_CARDS +1)
     assert not my_game.card_playable(my_player, increasing_piles[0], 0)
+
+def test_drawing_for_empty_hand():
+    """
+    Check that even if a player does not want to draw, they eventually will once their hand is empty
+
+    Returns
+    -------
+    None.
+
+    """
+    my_game = the_game.Game(number_of_players=2,
+        cards_in_hand=2, cards_per_turn=1)
+    my_player=my_game.players[0]
+    my_game.start_game()
+    #print(my_game.piles[0], my_player.hand[0])
+    my_game.play_card(my_game.piles[0], my_player.hand[0], False)
+    #print(my_game.piles[1], my_player.hand[0])
+    my_game.play_card(my_game.piles[1], my_player.hand[0], False)
+    #print(my_game.print_hands())
+    #print(my_game.current_player)
+    assert isinstance(my_game.current_player, the_game.Player)
+    assert len(my_player.hand)==2
+    assert my_game.current_player==my_game.players[1]
