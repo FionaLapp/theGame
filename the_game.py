@@ -302,11 +302,7 @@ class Game():
                 raise InputValidationError(pile, "weird pile type")
         return decreasing_piles, increasing_piles
 
-    def reward(card, pile): #this will be negative except for jumps
-        if isinstance(pile, IncreasingPile):
-            return -(card-pile.top_card)
-        else:
-            return -(pile.top_card-card)
+
 
     def game_won(self):
         if self.drawing_pile.cards != []:
