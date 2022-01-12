@@ -53,16 +53,25 @@ class TestStrategy():
         #print(np.sum(win_array)/number_of_attempts)
         return np.sum(win_array)/number_of_attempts
 
-    def run_tests(strategies, number_of_cards_array=[*range(10, 110, 10)], number_of_players_array=[*range(1, 10, 1)], number_of_piles_array=[*range(2, 8, 2)]):
+    def run_tests(strategies, variable="number_of_cards", number_of_cards_array=[*range(10, 110, 10)], number_of_players_array=[*range(1, 10, 1)], number_of_piles_array=[*range(2, 8, 2)]):
         with game_logging.ContextManager() as manager:
 
             winning_percentage = np.zeros((len(strategies), len(number_of_cards_array)))
-
-            for i, j in enumerate(number_of_cards_array):
-                for s, strategy in enumerate(strategies):
-                    winning_percentage[ s, i] = TestStrategy.run_one_test(
-                        number_of_attempts=NUMBER_OF_ATTEMPTS, number_of_cards=j, strategy=strategy)
-
+            if variable=="number_of_cards":
+                for i, j in enumerate(number_of_cards_array):
+                    for s, strategy in enumerate(strategies):
+                        winning_percentage[ s, i] = TestStrategy.run_one_test(
+                            number_of_attempts=NUMBER_OF_ATTEMPTS, number_of_cards=j, strategy=strategy)
+            elif variable=="number_of_players":
+                for i, j in enumerate(number_of_players_array):
+                    for s, strategy in enumerate(strategies):
+                        winning_percentage[ s, i] = TestStrategy.run_one_test(
+                            number_of_attempts=NUMBER_OF_ATTEMPTS, number_of_players=j, strategy=strategy)
+            elif variable=="number_of_piles":
+                for i, j in enumerate(number_of_piles_array):
+                    for s, strategy in enumerate(strategies):
+                        winning_percentage[ s, i] = TestStrategy.run_one_test(
+                            number_of_attempts=NUMBER_OF_ATTEMPTS, number_of_piles=j, strategy=strategy)
 
             return winning_percentage
 #%% plotting helper
@@ -103,31 +112,32 @@ def draw_plot(x_data, y_data, labels, x_label, y_label, title, position=111):
         spine.set_edgecolor(EDGE_COLOR)
     ax.set_ylabel(y_label, color=COLOR)
     ax.set_xlabel(x_label, color=COLOR)
-    ax.set_title(label, color=COLOR)
+    ax.set_title(title, color=COLOR)
     plt.title(title)
 
 #%% main
 
 if __name__ == "__main__":
-    strategies=[the_game.PlayWithMetricStrategy, the_game.PlayWithDistanceCutoffStrategy]
-    number_of_cards_array=[*range(10, 110, 10)]
-    winning_percentage = TestStrategy.run_tests(strategies, number_of_cards_array=[*range(10, 110, 10)])
-
-
-
-    #%% plotting
-    label =['number_of_cards', 'number_of_players', 'number_of_piles']
+    #%% prepare plotting
     x_label = ['number_of_cards (in the game)' , 'number_of_players', 'number_of_piles']
     y_label = 3*['success percentage']
+    title_all="comparison between always playing 2 cards and potentially playing more cards \n variable: "
+    titles=['number_of_cards', 'number_of_players', 'number_of_piles']
+    strategies=[the_game.PlayWithMetricStrategy, the_game.PlayWithDistanceCutoffStrategy]
+    number_of_cards_array=[*range(10, 110, 10)]
+    #%% calculate
+    for i in range (3):
+        winning_percentage = TestStrategy.run_tests(strategies, variable= titles[i])
 
-    title="comparison between always playing 2 cards and potentially playing more cards"
-    fig = plt.figure(figsize=FIG_SIZE, facecolor=BACKGROUND_COLOR, edgecolor=EDGE_COLOR)
-    i=0
-    draw_plot(number_of_cards_array, np.transpose(winning_percentage), ["PlayWithMetric", "PlayWithDistanceCutoff"], x_label[i], y_label[i], title)
+        #%% plot
+        fig = plt.figure(figsize=FIG_SIZE, facecolor=BACKGROUND_COLOR, edgecolor=EDGE_COLOR)
+        i=0
+        draw_plot(number_of_cards_array, np.transpose(winning_percentage), ["PlayWithMetric", "PlayWithDistanceCutoff"], x_label[i], y_label[i], title_all+titles[i])
 
-    plt.show()
+        plt.show()
 
-    my_path = os.path.dirname(os.path.abspath(__file__)) # Figures out the absolute path for you in case your working directory moves around.
-    my_figure_folder="figures"
-    my_file = 'graph.png'
-    fig.savefig(os.path.join(my_path, my_figure_folder, my_file))
+        my_path = os.path.dirname(os.path.abspath(__file__)) # Figures out the absolute path for you in case your working directory moves around.
+        my_figure_folder="figures"
+        file_name=titles[i].replace(" ", "_") + ".png"
+        file_name.replace("\n", "_")
+        fig.savefig(os.path.join(my_path, my_figure_folder, file_name))
