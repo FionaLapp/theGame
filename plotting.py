@@ -56,7 +56,7 @@ class TestStrategy():
         print(np.sum(win_array)/number_of_games)
         return np.sum(win_array)/number_of_games
 
-    def run_tests(strategies, x_data, variable="number_of_cards", points_for_error_calculation=5):
+    def run_tests(strategies, x_data, variable="number_of_cards", points_for_error_calculation=10):
 
         with game_logging.ContextManager() as manager:
 
@@ -74,19 +74,19 @@ class TestStrategy():
                                 number_of_games=NUMBER_OF_GAMES, number_of_cards=j, strategy=strategy)
 
             elif variable=="number_of_players":
-
-                for i, j in enumerate(x_data):
-                    for s, strategy in enumerate(strategies):
-                        winning_percentage[ s, i] = TestStrategy.run_one_test(
-                            number_of_games=NUMBER_OF_GAMES, number_of_players=j, strategy=strategy, number_of_cards=70)
+                for k in range(points_for_error_calculation):
+                    for i, j in enumerate(x_data):
+                        for s, strategy in enumerate(strategies):
+                            winning_percentage[ s, i, k] = TestStrategy.run_one_test(
+                                number_of_games=NUMBER_OF_GAMES, number_of_players=j, strategy=strategy, number_of_cards=70)
                 variable_dictionary['number_of_cards']=70
 
             elif variable=="number_of_piles":
-
-                for i, j in enumerate(x_data):
-                    for s, strategy in enumerate(strategies):
-                        winning_percentage[ s, i] = TestStrategy.run_one_test(
-                            number_of_games=NUMBER_OF_GAMES, number_of_piles=j, strategy=strategy)
+                for k in range(points_for_error_calculation):
+                    for i, j in enumerate(x_data):
+                        for s, strategy in enumerate(strategies):
+                            winning_percentage[ s, i, k] = TestStrategy.run_one_test(
+                                number_of_games=NUMBER_OF_GAMES, number_of_piles=j, strategy=strategy)
 
             return winning_percentage, variable_dictionary
 #%% plotting helper
@@ -156,9 +156,9 @@ if __name__ == "__main__":
     titles=['number_of_cards', 'number_of_players', 'number_of_piles']
     #for the number of cards plot, it makes sense to change the number of cards in the game to a lower number, since wedo not have enough samples otherwise
     strategies=[the_game.PlayWithMetricStrategy, the_game.PlayWithDistanceCutoffStrategy]
-    x_array=[[*range(10, 50, 10)],[*range(1, 10, 1)], [*range(2, 8, 2)] ]
+    x_array=[[*range(10, 110, 10)],[*range(1, 10, 1)], [*range(2, 8, 2)] ]
     #%% calculate
-    for i in range (1):
+    for i in range (1,2):
 
         winning_percentage, variable_dictionary = TestStrategy.run_tests(strategies, x_data=x_array[i], variable= titles[i])
 
