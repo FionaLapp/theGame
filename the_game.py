@@ -294,6 +294,8 @@ class Game():
         self.current_player = None
         self.finished = False
         self.basic_metric = None
+        self.jump_counter=0
+
     def separate_piles(self):
         decreasing_piles=[]
         increasing_piles=[]
@@ -368,6 +370,12 @@ class Game():
     def card_playable(self, player, pile, card):
         return ((card in player.hand) and pile.card_playable(card))
 
+    def check_if_jump(self, pile, card):
+        if pile.pile_multiplier*(pile.top_card-card)==10:
+            self.jump_counter+=1
+            #print("jump with card" , card , "on pile", pile)
+
+
     def play_card(self, pile, card, want_to_draw):
         if not self.game_finished():
             player = self.current_player
@@ -379,10 +387,11 @@ class Game():
                 want_to_draw = True
             # play card
             if self.card_playable(player, pile, card):
+                self.check_if_jump(pile, card)
                 player.remove_card_from_hand(card)
                 pile.play_card(card)
-                game_logging.GameLoggers.debug_logger.debug("{} plays {} on {} ".format(
-                    player, card, pile))
+                game_logging.GameLoggers.debug_logger.debug(
+                    "{} plays {} on {} ".format(player, card, pile))
 
                 # check if game finished
                 if self.game_finished():
