@@ -5,6 +5,7 @@ Created on Sat Dec 25 11:55:06 2021
 @author: Fiona
 """
 import the_game
+import numpy as np
 
 
 CARDS_IN_HAND = 2
@@ -107,6 +108,9 @@ def test_game_result_with_metric_win():
         my_game=my_strategy.game
         assert my_game.game_finished()
         assert my_game.game_won()
+        print(my_game.current_player)
+        print(my_game.current_player.hand)
+        print(my_game.piles[0])
         assert (not my_game.game_lost())
         assert len(my_game.drawing_pile.cards)==0
         for player in my_game.players:
@@ -150,7 +154,6 @@ def test_card_playable():
     my_player.hand.append(NUMBER_OF_CARDS+1)
     my_player.hand.append(0)
     decreasing_piles, increasing_piles=my_game.separate_piles()
-    #print(my_game.players[0])
     #pile0 should be decreasing, pile1 increasing
     assert my_game.card_playable(my_player, decreasing_piles[0], 0)
     assert not my_game.card_playable(my_player, decreasing_piles[0], NUMBER_OF_CARDS +1)
@@ -179,3 +182,19 @@ def test_drawing_for_empty_hand():
     assert isinstance(my_game.current_player, the_game.Player)
     assert len(my_player.hand)==2
     assert my_game.current_player==my_game.players[1]
+
+def test_basic_metric():
+    my_game=the_game.Game(number_of_players=2,
+        cards_in_hand=2, cards_per_turn=1, number_of_cards=100, number_of_piles=2)
+    my_player=my_game.players[0]
+    decreasing_piles, increasing_piles=my_game.separate_piles()
+    increasing_pile=increasing_piles[0]
+    my_game.start_game()
+    my_player.hand=[2,12]
+    my_game.play_card(increasing_pile, 12, False)
+    my_player.hand=[2,3]
+    my_game.current_player=my_player
+    my_game.calculate_basic_metric()
+
+    assert np.array_equal(my_game.basic_metric, np.array([[98, -10], [97, 101]]))
+
