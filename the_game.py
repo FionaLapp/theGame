@@ -242,7 +242,7 @@ class IncreasingPile(PlayingPile):
         self.pile_type = INCREASING
         self.cards.append(LOWEST_PLAYABLE_NUMBER - 1)
         self.top_card=LOWEST_PLAYABLE_NUMBER - 1
-        self.pile_multiplier=-1 #to get an easy way to calculate differences between card and pile: reward = pile_multiplier*(top_card-card) --> negative except for jumps
+        self.pile_multiplier= 1 #to get an easy way to calculate differences between card and pile: reward = pile_multiplier*(top_card-card) --> negative except for jumps
 
 
     def card_playable(self, card):
@@ -321,11 +321,19 @@ class Game():
             return True
 
     def game_lost(self):
-        if not self.game_won() and not self.current_player.hand == []:
+        if self.current_player.hand==[]:
+            return False #because they need to draw
+        if not self.game_won():
             # there are still cards that haven't been played
             # true if player can play, false otherwise
             #can_play_matrix = self.can_play(self.current_player)
-            return np.array_equal(self.basic_metric, (self.number_of_cards+1)*np.ones(np.shape(self.basic_metric)))  # all have to be true
+            for card in self.current_player.hand:
+                for pile in self.piles:
+                    if pile.card_playable(card): #only check if playable on pile since it should definitely be in hand
+                           return False
+
+            return True  # all have to be true
+        return False
 
     def start_game(self,player_id=0):
         self.current_player = self.players[player_id]
@@ -457,7 +465,7 @@ class Game():
         for i, card in enumerate(player.hand):
             for j, pile in enumerate(self.piles):
                 if pile.card_playable(card): #only check if playable on pile since it should definitely be in hand
-                        metric_matrix[i, j] =pile.pile_multiplier* (pile.top_card-card)
+                        metric_matrix[i, j] =-pile.pile_multiplier* (pile.top_card-card)
 
         self.basic_metric=metric_matrix
 
@@ -582,7 +590,7 @@ class PlayWithDistanceCutoffStrategy(Strategy):
 if __name__ == "__main__":
     with game_logging.ContextManager() as manager:
 
-        my_strategy = PlayWithDistanceCutoffStrategy(number_of_players=4, number_of_cards=50)
+        my_strategy = PlayWithDistanceCutoffStrategy(number_of_players=4, number_of_cards=10)
         my_strategy.start_game(my_strategy.game.players[0])
         my_strategy.play()
 
