@@ -174,6 +174,7 @@ class PlayingPile(Pile):
         super().__init__()
         self.id_number = id_number
         self.top_card=None
+        self.pile_multiplier=None
 
     @abstractmethod
     def card_playable(self, card):
@@ -214,6 +215,7 @@ class DecreasingPile(PlayingPile):
         self.pile_type = DECREASING
         self.cards.append(number_of_cards)
         self.top_card=number_of_cards
+        self.pile_multiplier=-1 #to get an easy way to calculate differences between card and pile: reward = pile_multiplier*(top_card-card) --> negative except for jumps
 
     def card_playable(self, card):
         # check if playable
@@ -240,6 +242,8 @@ class IncreasingPile(PlayingPile):
         self.pile_type = INCREASING
         self.cards.append(LOWEST_PLAYABLE_NUMBER - 1)
         self.top_card=LOWEST_PLAYABLE_NUMBER - 1
+        self.pile_multiplier=-1 #to get an easy way to calculate differences between card and pile: reward = pile_multiplier*(top_card-card) --> negative except for jumps
+
 
     def card_playable(self, card):
         # check if playable
@@ -294,9 +298,9 @@ class Game():
         decreasing_piles=[]
         increasing_piles=[]
         for pile in self.piles:
-            if isinstance(pile, DecreasingPile):
+            if pile.pile_multiplier==-1:
                 decreasing_piles.append(pile)
-            elif isinstance(pile, IncreasingPile):
+            elif pile.pile_multiplier==1:
                 increasing_piles.append(pile)
             else:
                 raise InputValidationError(pile, "weird pile type")
@@ -388,7 +392,7 @@ class Game():
                         len(self.drawing_pile.cards) != 0)):
 
                     self.draw_card(player, self.drawing_pile)
-                    game_logging.GameLoggers.strategy_logger.warn(player.__str__())
+                    #game_logging.GameLoggers.strategy_logger.warn(player.__str__())
 
                 self.set_next_player()
 
@@ -453,10 +457,8 @@ class Game():
         for i, card in enumerate(player.hand):
             for j, pile in enumerate(self.piles):
                 if pile.card_playable(card): #only check if playable on pile since it should definitely be in hand
-                    if isinstance(pile, DecreasingPile):
-                        metric_matrix[i, j] = pile.top_card-card
-                    elif isinstance(pile, IncreasingPile):
-                        metric_matrix[i, j] = card-pile.top_card
+                        metric_matrix[i, j] =pile.pile_multiplier* (pile.top_card-card)
+
         self.basic_metric=metric_matrix
 
     def print_hands(self):
