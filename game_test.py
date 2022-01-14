@@ -198,3 +198,19 @@ def test_basic_metric():
 
     assert np.array_equal(my_game.basic_metric, np.array([[98, -10], [97, 101]]))
 
+def test_jump_count():
+    my_game=the_game.Game(number_of_players=2,
+        cards_in_hand=2, cards_per_turn=1, number_of_cards=100, number_of_piles=2)
+    my_player=my_game.players[0]
+    decreasing_piles, increasing_piles=my_game.separate_piles()
+    increasing_pile=increasing_piles[0]
+    my_game.start_game()
+    assert my_game.jump_counter==0
+
+    my_player.hand=[2,12]
+    my_game.play_card(increasing_pile, 12, False)
+    my_player.hand=[2,3]
+    my_game.play_card(increasing_pile, 2, True)
+    my_game.current_player=my_player
+
+    assert my_game.jump_counter==1
