@@ -6,7 +6,6 @@ Created on Sat Jan 15 18:03:11 2022
 """
 
 #%% make plots pretty
-NUMBER_OF_GAMES = 100
 MARKER = 'o'
 COLOR= 'w'
 PLOTTING_COLORS=['g', 'b', 'r', 'm', 'c']
