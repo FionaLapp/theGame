@@ -34,9 +34,10 @@ class TestStrategy():
 
     def run_one_test (number_of_games=100, cards_in_hand=6,
                      number_of_players=4, number_of_piles=4, cards_per_turn=2,
-                     number_of_cards=100, strategy=the_game.PlayWithDistanceCutoffStrategy):
+                     number_of_cards=100, strategy=the_game.PlayWithDistanceCutoffStrategy, return_jump_count=True):
 
         win_array = np.zeros(number_of_games)
+        jump_array= np.zeros(number_of_games)
         for i in range(number_of_games):
             my_strategy = strategy(
                 cards_in_hand=cards_in_hand,
@@ -53,13 +54,20 @@ class TestStrategy():
                 "piles: {}".format(my_strategy.game.print_piles()))
             if my_strategy.game.game_won():
                 win_array[i] = 1
-        print(np.sum(win_array)/number_of_games)
-        return np.sum(win_array)/number_of_games
+            jump_array[i]=my_strategy.game.jump_counter
 
-    def run_tests(strategies, x_data, variable="number_of_cards", points_for_error_calculation=10):
+        number_of_wins=np.sum(win_array)/number_of_games
+
+        average_jumps=np.sum(jump_array)/number_of_games
+        print(average_jumps)
+        # if return_jump_count==True:
+        #     return average_jumps#jump_array
+        return number_of_wins, jump_array
+
+    def run_tests(strategies, x_data, variable="number_of_cards", points_for_error_calculation=4):
 
         with game_logging.ContextManager() as manager:
-
+            jump_count=np.zeros((len(strategies), len(x_data), points_for_error_calculation*NUMBER_OF_GAMES))
             winning_percentage = np.zeros((len(strategies), len(x_data), points_for_error_calculation))
             variable_dictionary=dict(number_of_games=100, cards_in_hand=6,number_of_players=4,
                                      number_of_piles=4, cards_per_turn=2,number_of_cards=100, strategy=the_game.PlayWithDistanceCutoffStrategy, points_for_error_calculation=points_for_error_calculation)
@@ -70,14 +78,14 @@ class TestStrategy():
                 for k in range(points_for_error_calculation):
                     for i, j in enumerate(x_data):
                         for s, strategy in enumerate(strategies):
-                            winning_percentage[ s, i, k] = TestStrategy.run_one_test(
+                            winning_percentage[ s, i, k], jump_count[s,i,NUMBER_OF_GAMES*k:NUMBER_OF_GAMES*(k+1)] = TestStrategy.run_one_test(
                                 number_of_games=NUMBER_OF_GAMES, number_of_cards=j, strategy=strategy)
 
             elif variable=="number_of_players":
                 for k in range(points_for_error_calculation):
                     for i, j in enumerate(x_data):
                         for s, strategy in enumerate(strategies):
-                            winning_percentage[ s, i, k] = TestStrategy.run_one_test(
+                            winning_percentage[ s, i, k] ,jump_count[s,i,NUMBER_OF_GAMES*k:NUMBER_OF_GAMES*(k+1)]= TestStrategy.run_one_test(
                                 number_of_games=NUMBER_OF_GAMES, number_of_players=j, strategy=strategy, number_of_cards=70)
                 variable_dictionary['number_of_cards']=70
 
@@ -85,13 +93,28 @@ class TestStrategy():
                 for k in range(points_for_error_calculation):
                     for i, j in enumerate(x_data):
                         for s, strategy in enumerate(strategies):
-                            winning_percentage[ s, i, k] = TestStrategy.run_one_test(
+                            winning_percentage[ s, i, k],jump_count[s,i,NUMBER_OF_GAMES*k:NUMBER_OF_GAMES*(k+1)] = TestStrategy.run_one_test(
                                 number_of_games=NUMBER_OF_GAMES, number_of_piles=j, strategy=strategy)
 
-            return winning_percentage, variable_dictionary
+            elif variable=="cards_in_hand":
+                for k in range(points_for_error_calculation):
+                    for i, j in enumerate(x_data):
+                        for s, strategy in enumerate(strategies):
+                            winning_percentage[ s, i, k],jump_count[s,i,NUMBER_OF_GAMES*k:NUMBER_OF_GAMES*(k+1)] = TestStrategy.run_one_test(
+                                number_of_games=NUMBER_OF_GAMES, cards_in_hand=j, strategy=strategy)
+
+            elif variable=="cards_per_turn":
+                for k in range(points_for_error_calculation):
+                    for i, j in enumerate(x_data):
+                        for s, strategy in enumerate(strategies):
+                            winning_percentage[ s, i, k],jump_count[s,i,NUMBER_OF_GAMES*k:NUMBER_OF_GAMES*(k+1)] = TestStrategy.run_one_test(
+                                number_of_games=NUMBER_OF_GAMES, cards_per_turn=j, number_of_cards=50, strategy=strategy)
+
+
+            return winning_percentage, jump_count, variable_dictionary
 #%% plotting helper
 
-def draw_plot(x_data, y_data, labels, x_label, y_label, title, variable_dictionary, position=111):
+def draw_plot(fig, x_data, y_data, labels, x_label, y_label, title, variable_dictionary, jump_plot, position=111):
     """
 
 
@@ -131,6 +154,7 @@ def draw_plot(x_data, y_data, labels, x_label, y_label, title, variable_dictiona
         spine.set_edgecolor(EDGE_COLOR)
     ax.set_ylabel(y_label, color=COLOR)
     ax.set_xlabel(x_label, color=COLOR)
+    ax.set_ylim(bottom=0)
     ax.set_title(title, color=COLOR)
     plt.title(title)
     #box_text_vars=["number_of_games","cards_in_hand", "number_of_players", "number_of_piles", "cards_per_turn", "number_of_cards"]
@@ -139,7 +163,12 @@ def draw_plot(x_data, y_data, labels, x_label, y_label, title, variable_dictiona
     for key, val in variable_dictionary.items():
         if not val is None:
             box_text = box_text + key +": "+ str(val) + ", \n"
-    box_text=box_text+ "\n error bars show standard error \n for n="+str(variable_dictionary['points_for_error_calculation']) + " data points"
+    if jump_plot==False:
+        #if plotting wins, can't do error bars for number of games, so we have split the number of games games up into points_for_error_calculation subsets
+        box_text=box_text+ "\n error bars show standard error \n for n="+str(variable_dictionary['points_for_error_calculation']) + " data points"
+    else:
+        #if plotting jumps, error bars are for number of games
+        box_text=box_text+ "\n error bars show standard error \n for n="+str(variable_dictionary['points_for_error_calculation']* NUMBER_OF_GAMES) + " games per point"
     box_style=dict(boxstyle='square', facecolor=BACKGROUND_COLOR, alpha=0.5)
     ax.text(1.05, 0.75,box_text,
      horizontalalignment='left',
@@ -150,28 +179,34 @@ def draw_plot(x_data, y_data, labels, x_label, y_label, title, variable_dictiona
 
 if __name__ == "__main__":
     #%% prepare plotting
-    x_label = ['number_of_cards (in the game)' , 'number_of_players', 'number_of_piles']
-    y_label = 3*['success proportion']
-    title_all="comparison between always playing 2 cards and potentially playing more cards \n variable: "
-    titles=['number_of_cards', 'number_of_players', 'number_of_piles']
+    x_label = ['number_of_cards (in the game)' , 'number_of_players', 'number_of_piles', 'cards_in_hand', 'cards_per_turn']
+    y_label_wins = 'success proportion'
+    y_label_jumps='average number of jumps per game'
+    title_all="comparison between only playing minimum number of cards and potentially playing more cards \n variable: "
+    titles=['number_of_cards', 'number_of_players', 'number_of_piles', 'cards_in_hand', 'cards_per_turn']
     #for the number of cards plot, it makes sense to change the number of cards in the game to a lower number, since wedo not have enough samples otherwise
     strategies=[the_game.PlayWithMetricStrategy, the_game.PlayWithDistanceCutoffStrategy]
-    x_array=[[*range(10, 110, 10)],[*range(1, 10, 1)], [*range(2, 8, 2)] ]
+    x_array=[[*range(10, 150, 10)],[*range(1, 10, 1)], [*range(2, 8, 2)], [*range(4,10,1)], [*range(1,6,1)] ]
     #%% calculate
-    for i in range (1,2):
-
-        winning_percentage, variable_dictionary = TestStrategy.run_tests(strategies, x_data=x_array[i], variable= titles[i])
+    for i in range (5):
+        winning_percentage, jump_count, variable_dictionary = TestStrategy.run_tests(strategies, x_data=x_array[i], variable= titles[i])
 
         #%% plot
         print(x_array[i])
         print(winning_percentage)
-        fig = plt.figure(figsize=FIG_SIZE, facecolor=BACKGROUND_COLOR, edgecolor=EDGE_COLOR)
-        draw_plot(x_array[i], winning_percentage, ["PlayWithMetric", "PlayWithDistanceCutoff"], x_label[i], y_label[i], title_all+titles[i], variable_dictionary)
+        fig_wins = plt.figure(figsize=FIG_SIZE, facecolor=BACKGROUND_COLOR, edgecolor=EDGE_COLOR)
+        draw_plot(fig_wins, x_array[i], winning_percentage, ["PlayWithMetric", "PlayWithDistanceCutoff"], x_label[i], y_label_wins, title_all+titles[i], variable_dictionary, jump_plot=False)
 
         plt.show()
+        fig_jumps = plt.figure(figsize=FIG_SIZE, facecolor=BACKGROUND_COLOR, edgecolor=EDGE_COLOR)
+        draw_plot(fig_jumps, x_array[i], jump_count, ["PlayWithMetric", "PlayWithDistanceCutoff"], x_label[i], y_label_jumps, title_all+titles[i], variable_dictionary, jump_plot=True)
+
+        plt.show()
+
 
         my_path = os.path.dirname(os.path.abspath(__file__)) # Figures out the absolute path for you in case your working directory moves around.
         my_figure_folder="figures"
         file_name=titles[i].replace(" ", "_") + ".png"
         file_name.replace("\n", "_")
-        fig.savefig(os.path.join(my_path, my_figure_folder, file_name))
+        fig_wins.savefig(os.path.join(my_path, my_figure_folder, "wins_"+file_name), bbox_inches='tight')
+        fig_jumps.savefig(os.path.join(my_path, my_figure_folder, "jumps_"+file_name), bbox_inches='tight')
