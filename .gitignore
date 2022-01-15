@@ -129,8 +129,5 @@ dmypy.json
 .pyre/
 
 
-#Figures
-*.png
-
 #profiling log
 profiling_log
