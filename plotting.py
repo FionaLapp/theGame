@@ -9,23 +9,26 @@ import the_game
 import numpy as np
 import matplotlib.pyplot as plt
 import game_logging
+import plotting_constants as c
 import os
 # importing cProfile
 import cProfile #to check what takes longest
 
-#%% make plots pretty
 NUMBER_OF_GAMES = 100
-MARKER = 'o'
-COLOR= 'w'
-PLOTTING_COLORS=['g', 'b', 'r', 'm', 'c']
-BACKGROUND_COLOR = 'k'
-EDGE_COLOR='w'
-FONT_COLOR='w'
-FIG_SIZE = [6, 4]
-FONTSIZE = 18
-LINEWIDTH = 3
-TITLE_SIZE = 25
-TITLE_DICT={'fontsize': TITLE_SIZE, 'color': FONT_COLOR}
+
+# #%% make plots pretty
+# NUMBER_OF_GAMES = 100
+# MARKER = 'o'
+# COLOR= 'w'
+# PLOTTING_COLORS=['g', 'b', 'r', 'm', 'c']
+# BACKGROUND_COLOR = 'k'
+# EDGE_COLOR='w'
+# FONT_COLOR='w'
+# FIG_SIZE = [6, 4]
+# FONTSIZE = 18
+# LINEWIDTH = 3
+# TITLE_SIZE = 25
+# TITLE_DICT={'fontsize': TITLE_SIZE, 'color': FONT_COLOR}
 
 
 #%% running tests
@@ -140,22 +143,22 @@ def draw_plot(fig, x_data, y_data, labels, x_label, y_label, title, variable_dic
     None.
 
     """
-    ax = fig.add_subplot(position, facecolor=BACKGROUND_COLOR)
-    ax.tick_params(color=FONT_COLOR, labelcolor=FONT_COLOR)
+    ax = fig.add_subplot(position, facecolor=c.BACKGROUND_COLOR)
+    ax.tick_params(color=c.FONT_COLOR, labelcolor=c.FONT_COLOR)
     std_error=np.std(y_data, axis=2) / np.sqrt(np.size(y_data[0,0,:]))
     y_data=y_data.mean(axis=2)
     for i in range(len(labels)):
 
-        ax.plot(x_data, y_data[i,:], marker=MARKER, color=PLOTTING_COLORS[i], label=labels[i], linewidth=LINEWIDTH)
-        ax.errorbar(x_data, y_data[i, :], yerr=std_error[i], capsize=4, color=PLOTTING_COLORS[i])
-    ax.legend(labels, labelcolor=PLOTTING_COLORS[:len(labels)])
+        ax.plot(x_data, y_data[i,:], marker=c.MARKER, color=c.PLOTTING_COLORS[i], label=labels[i], linewidth=c.LINEWIDTH)
+        ax.errorbar(x_data, y_data[i, :], yerr=std_error[i], capsize=4, color=c.PLOTTING_COLORS[i])
+    ax.legend(labels, labelcolor=c.PLOTTING_COLORS[:len(labels)])
 
     for spine in ax.spines.values():
-        spine.set_edgecolor(EDGE_COLOR)
-    ax.set_ylabel(y_label, color=COLOR)
-    ax.set_xlabel(x_label, color=COLOR)
+        spine.set_edgecolor(c.EDGE_COLOR)
+    ax.set_ylabel(y_label, color=c.COLOR)
+    ax.set_xlabel(x_label, color=c.COLOR)
     ax.set_ylim(bottom=0)
-    ax.set_title(title, color=COLOR)
+    ax.set_title(title, color=c.COLOR)
     plt.title(title)
     #box_text_vars=["number_of_games","cards_in_hand", "number_of_players", "number_of_piles", "cards_per_turn", "number_of_cards"]
     #box_text_vals=[test_strategy.number_of_games, test_strategy.cards_in_hand, test_strategy.number_of_players, test_strategy.number_of_piles, test_strategy.number_of_cards, test_strategy.cards_per_turn]
@@ -169,7 +172,7 @@ def draw_plot(fig, x_data, y_data, labels, x_label, y_label, title, variable_dic
     else:
         #if plotting jumps, error bars are for number of games
         box_text=box_text+ "\n error bars show standard error \n for n="+str(variable_dictionary['points_for_error_calculation']* NUMBER_OF_GAMES) + " games per point"
-    box_style=dict(boxstyle='square', facecolor=BACKGROUND_COLOR, alpha=0.5)
+    box_style=dict(boxstyle='square', facecolor=c.BACKGROUND_COLOR, alpha=0.5)
     ax.text(1.05, 0.75,box_text,
      horizontalalignment='left',
      verticalalignment='center',
@@ -194,18 +197,18 @@ if __name__ == "__main__":
         #%% plot
         print(x_array[i])
         print(winning_percentage)
-        fig_wins = plt.figure(figsize=FIG_SIZE, facecolor=BACKGROUND_COLOR, edgecolor=EDGE_COLOR)
-        draw_plot(fig_wins, x_array[i], winning_percentage, ["PlayWithMetric", "PlayWithDistanceCutoff"], x_label[i], y_label_wins, title_all+titles[i], variable_dictionary, jump_plot=False)
+        fig_wins = plt.figure(figsize=c.FIG_SIZE, facecolor=c.BACKGROUND_COLOR, edgecolor=c.EDGE_COLOR)
+        draw_plot(fig_wins, x_array[i], winning_percentage, ["Minimum", "Potentially more"], x_label[i], y_label_wins, title_all+titles[i], variable_dictionary, jump_plot=False)
 
         plt.show()
-        fig_jumps = plt.figure(figsize=FIG_SIZE, facecolor=BACKGROUND_COLOR, edgecolor=EDGE_COLOR)
-        draw_plot(fig_jumps, x_array[i], jump_count, ["PlayWithMetric", "PlayWithDistanceCutoff"], x_label[i], y_label_jumps, title_all+titles[i], variable_dictionary, jump_plot=True)
+        fig_jumps = plt.figure(figsize=c.FIG_SIZE, facecolor=c.BACKGROUND_COLOR, edgecolor=c.EDGE_COLOR)
+        draw_plot(fig_jumps, x_array[i], jump_count, ["Minimum", "Potentially more"], x_label[i], y_label_jumps, title_all+titles[i], variable_dictionary, jump_plot=True)
 
         plt.show()
 
 
         my_path = os.path.dirname(os.path.abspath(__file__)) # Figures out the absolute path for you in case your working directory moves around.
-        my_figure_folder="figures"
+        my_figure_folder=os.path.join("figures", "stats")
         file_name=titles[i].replace(" ", "_") + ".png"
         file_name.replace("\n", "_")
         fig_wins.savefig(os.path.join(my_path, my_figure_folder, "wins_"+file_name), bbox_inches='tight')
