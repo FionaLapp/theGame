@@ -28,7 +28,7 @@ CARDS_IN_HAND = 6
 NUMBER_OF_PLAYERS = 2
 NUMBER_OF_PILES = 4
 CARDS_PER_TURN = 1
-NUMBER_OF_CARDS = 100
+NUMBER_OF_CARDS = 70
 
 
 
@@ -64,7 +64,7 @@ class Environment():
         number_of_cards=NUMBER_OF_CARDS)
         self.game.current_player=self.game.players[0]
         self.STATE_SPACE_SIZE=NUMBER_OF_CARDS*[6]# for each card, state can be: in drawing_pile, been_played, in my hand, in someone else's hand, top card
-        self.ACTION_SPACE_SIZE=3
+        self.ACTION_SPACE_SIZE=6
         self.MOST_NEGATIVE_REWARD=-1 #-(self.game.number_of_cards+1)
         self.game_over=False
 
@@ -72,6 +72,8 @@ class Environment():
     def reset(self):
         self.__init__()
     def step(self, action_number):
+        want_to_draw=action_number%2
+        action_number=int(action_number/2)
         self.game.calculate_basic_metric()
         metric_matrix=self.game.basic_metric
         less_actions_available=False
@@ -98,7 +100,6 @@ class Environment():
         if not self.game.card_playable(self.game.current_player, self.game.piles[pile_number], card):
             return self.game , self.MOST_NEGATIVE_REWARD, False
         else:
-            want_to_draw=True
             #print("card played:", card, " on pile", pile_number, " by player ", self.game.players[0])
             reward=0#self.reward(card, self.game.piles[pile_number])
             self.game.play_card(self.game.piles[pile_number], card, want_to_draw)

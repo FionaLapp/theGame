@@ -31,22 +31,24 @@ CARDS_IN_HAND = 6
 NUMBER_OF_PLAYERS = 2
 NUMBER_OF_PILES = 4
 CARDS_PER_TURN = 1
-NUMBER_OF_CARDS = 100
-
+NUMBER_OF_CARDS = 70
+model_name="models/no_of_cards_70___100.00max___14.00avg____0.00min__1642446958.model"
+#model_name="models/no_of_cards_100___100.00max____4.00avg____0.00min__1642444639.model"
+#model_name="models/model___100.00max__100.00avg__100.00min__1642437186.model"
 #%%
 
 class DRLStrategy(the_game.Strategy):
     def __init__(self, cards_in_hand=6, number_of_players=4, number_of_piles=4,
                    cards_per_turn=1, number_of_cards=NUMBER_OF_CARDS):
           self.env=Environment()
-          self.model=tf.keras.models.load_model("models/model___100.00max__100.00avg__100.00min__1642437186.model")
+          self.model=tf.keras.models.load_model(model_name)
 
     def predict_action(self, state):
         return np.argmax(self.model.predict(np.array(state).reshape(-1, *state.shape)/255)[0])
 
 
     def play(self):
-        self.actions=np.zeros(3)
+        self.actions=np.zeros(6)
         while True:
               if self.env.game.game_finished():
                   return self.actions
@@ -67,7 +69,7 @@ def run_tests(number_of_tests):
     strategy=DRLStrategy()
     win_array=np.zeros(number_of_tests)
     jump_array=np.zeros(number_of_tests)
-    actions_array=np.zeros((number_of_tests, 3))
+    actions_array=np.zeros((number_of_tests, 6))
 
     for i in range(number_of_tests):
 
@@ -82,5 +84,13 @@ def run_tests(number_of_tests):
         print("{}% done".format((i+1)/number_of_tests*100))
     return win_array, jump_array, actions_array
 
-win_array, jump_array, actions_array= run_tests(100)
+number_of_tests=25
+win_array=np.zeros((number_of_tests,4))
+jump_array=np.zeros((number_of_tests,4))
+actions_array=np.zeros((number_of_tests, 6, 4))
+
+for i in range(4):
+    win_array[:,i], jump_array[:,i], actions_array[:,:,i]= run_tests(number_of_tests)
+
+
 
