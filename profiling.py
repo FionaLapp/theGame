@@ -33,6 +33,7 @@ import cProfile
 import pstats
 import plotting
 import the_game
+import test_deep_q_rl
 from pstats import SortKey
 
 if __name__ == "__main__":
@@ -40,14 +41,16 @@ if __name__ == "__main__":
     number_of_cards_array = [*range(10, 110, 10)]
     strategies = [the_game.PlayWithMetricStrategy]
 
-    cProfile.run(
-        ('plotting.TestStrategy.run_tests(strategies, number_of_cards_array, '
-         'variable="number_of_cards", points_for_error_calculation=4)'),
-        'profiling_log')
+    # cProfile.run(
+    #     ('plotting.TestStrategy.run_tests(strategies, number_of_cards_array, '
+    #      'variable="number_of_cards", points_for_error_calculation=4)'),
+    #     'profiling_log')
+
+    cProfile.run('test_deep_q_rl.run_tests()','profiling_log')
 
     p = pstats.Stats('profiling_log')
     # sort by cumulative time
-    p.strip_dirs().sort_stats(SortKey.CUMULATIVE, SortKey.TIME).print_stats()
+    p.strip_dirs().sort_stats(SortKey.CUMULATIVE, SortKey.TIME).reverse_order().print_stats()
 
     # # sort by number of calls performed by each function
     # p.strip_dirs().sort_stats(SortKey.CALLS).print_stats()
