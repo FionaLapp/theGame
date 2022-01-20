@@ -3,6 +3,23 @@
 Created on Sun Jan 16 16:10:28 2022
 
 @author: Fiona
+
+Third time's the charm, or so they say
+A deep reinforcement model. State space and action space remain the similar to
+attempt 2:
+For the state space, we now have a matrix of length [number_of_cards,
+number_of_actions]. Each row contains exactly one 1, this will be in
+the column corresponding to the card's state. 1 for player's hand, 2
+in someone else's hand, 3 and 5 for top_cards of increasing and decreasing
+piles, and 4 for cards that have been played already but aren't top cards.
+This is similar to attempt 2, except instead of using numbers 0-5, we have
+ one-hot-encoded card states.
+For the action space, we only consider the best 3 card-pile combinations,
+but we have added a want_to_draw boolean, so that there are 6 actions available.
+
+This model performs well enough for a small (50ish) number of cards (though it
+basically just always chose the card with smallest distance), but I haven't
+optimised the network itself, so it probably doesn't do as well as it could.
 """
 
 from tensorflow.keras import Input
@@ -28,7 +45,10 @@ CARDS_IN_HAND = 6
 NUMBER_OF_PLAYERS = 2
 NUMBER_OF_PILES = 4
 CARDS_PER_TURN = 1
-NUMBER_OF_CARDS = 70
+NUMBER_OF_CARDS = 50
+
+NUMBER_OF_ACTIONS=6
+NUMBER_OF_CARD_STATES=6
 
 
 
@@ -37,7 +57,7 @@ REPLAY_MEMORY_SIZE = 50_000  # How many last steps to keep for model training
 MIN_REPLAY_MEMORY_SIZE = 1_000  # Minimum number of steps in a memory to start training
 MINIBATCH_SIZE = 64  # How many steps (samples) to use for training
 UPDATE_TARGET_EVERY = 5  # Terminal states (end of episodes)
-MODEL_NAME = 'no_of_cards_100'
+MODEL_NAME = 'no_of_cards_70'
 MIN_REWARD = -200  # For model save
 MEMORY_FRACTION = 0.20
 
@@ -63,8 +83,8 @@ class Environment():
         cards_per_turn=CARDS_PER_TURN,
         number_of_cards=NUMBER_OF_CARDS)
         self.game.current_player=self.game.players[0]
-        self.STATE_SPACE_SIZE=NUMBER_OF_CARDS*[6]# for each card, state can be: in drawing_pile, been_played, in my hand, in someone else's hand, top card
-        self.ACTION_SPACE_SIZE=6
+        self.STATE_SPACE_SIZE=NUMBER_OF_CARDS*[NUMBER_OF_CARD_STATES]# for each card, state can be: in drawing_pile, been_played, in my hand, in someone else's hand, top card
+        self.ACTION_SPACE_SIZE=NUMBER_OF_ACTIONS
         self.MOST_NEGATIVE_REWARD=-1 #-(self.game.number_of_cards+1)
         self.game_over=False
 
@@ -101,7 +121,7 @@ class Environment():
             return self.game , self.MOST_NEGATIVE_REWARD, False
         else:
             #print("card played:", card, " on pile", pile_number, " by player ", self.game.players[0])
-            reward=0#self.reward(card, self.game.piles[pile_number])
+            reward=1#self.reward(card, self.game.piles[pile_number])
             self.game.play_card(self.game.piles[pile_number], card, want_to_draw)
             #print(self.game.print_hands())
             #print(self.game.print_piles())
@@ -111,6 +131,7 @@ class Environment():
                     reward=100
                     RESULTS.append(1)
                 else:
+                    reward=-100
                     RESULTS.append(0)
             return self.game , reward, self.game_over
 
@@ -128,20 +149,20 @@ class Environment():
 
 
 def get_state(game):
-    state=np.int_(np.zeros(NUMBER_OF_CARDS)) #0: we assume everything is in the drawing pile
+    state=np.int_(np.zeros((NUMBER_OF_CARDS, NUMBER_OF_CARD_STATES))) #0: we assume everything is in the drawing pile
     for player in game.players:
         if player==game.current_player:
             for card in player.hand:
-                state[card]=1 #1: in my hand
+                state[card, 1]=1 #1: in my hand
         else:
             for card in player.hand:
-                state[card]=2 #2: in someone else's hand
+                state[card, 2]=1 #2: in someone else's hand
     for pile in game.piles:
         for card in pile.cards[1:]:
 
-            state[card]=4 # card has already been played
+            state[card, 4]=1 # card has already been played
         if pile.top_card!=NUMBER_OF_CARDS and pile.top_card!=0:
-            state[pile.top_card]=4-pile.pile_multiplier #5 if decreasing, 3 if increasing
+            state[pile.top_card, 4-pile.pile_multiplier]=1 #5 if decreasing, 3 if increasing
 
     return state
 
@@ -200,10 +221,8 @@ class DQNAgent:
 
     def create_model(self, env):
         model = Sequential()
-        model.add(Input(shape=NUMBER_OF_CARDS))
+        model.add(Input(shape=(NUMBER_OF_CARDS, NUMBER_OF_CARD_STATES)))
         model.add(Dense(32, activation='relu'))
-
-
         # model.add(Conv2D(3, (3, 3), input_shape=env.STATE_SPACE_SIZE))
         # model.add(Activation("relu"))
         # model.add(MaxPooling2D(2, 2))
@@ -233,8 +252,8 @@ class DQNAgent:
         if game is None:
             pdb.set_trace()
         state=get_state(game)
-        return self.model.predict(np.array(state).reshape(-1, *state.shape)/255)[0]
-    # Trains main network every step during episode
+        return self.model.predict(np.array(state).reshape(-1, *state.shape)/255)[0][0]
+        # Trains main network every step during episode
     # Trains main network every step during episode
     def train(self, terminal_state, step):
 
@@ -299,7 +318,7 @@ class DQNAgent:
     def get_qs(self, game):
         state=get_state(game)
 
-        return self.model.predict(np.array(state).reshape(-1, *state.shape)/255)[0]
+        return self.model.predict(np.array(state).reshape(-1, *state.shape)/255)[0][0]
 
 
 env = Environment()
@@ -308,6 +327,10 @@ def build_model():
     # Exploration settings
     epsilon = 1  # not a constant, going to be decayed
     aggregate_episode_wins=[]
+
+    win_array=np.zeros(EPISODES)
+    jump_array=np.zeros(EPISODES)
+    actions_array=np.zeros((EPISODES, NUMBER_OF_ACTIONS))
 
     # For stats
     ep_rewards = [-200]
@@ -332,6 +355,7 @@ def build_model():
 
         # Update tensorboard step every episode
         agent.tensorboard.step = episode
+        actions=np.zeros(NUMBER_OF_ACTIONS)
 
         # Restarting episode - reset episode reward and step number
         episode_reward = 0
@@ -348,11 +372,14 @@ def build_model():
             # This part stays mostly the same, the change is to query a model for Q values
             if np.random.random() > epsilon:
                 # Get action from Q table
-                action = np.argmax(agent.get_qs(current_state))
+                action = np.argmax(agent.get_qs(current_state))%NUMBER_OF_ACTIONS
             else:
                 # Get random action
                 action = np.random.randint(0, env.ACTION_SPACE_SIZE)
-
+            try:
+                actions[action]+=1
+            except Exception:
+                pdb.set_trace()
             new_state, reward, done = env.step(action)
 
             # Transform new continous state to new discrete state and count reward
@@ -367,7 +394,9 @@ def build_model():
 
             current_state = new_state
             step += 1
-
+        win_array[episode-1]=env.game.game_won()
+        jump_array[episode-1]=env.game.jump_counter
+        actions_array[episode-1,:]=actions
         # Append episode reward to a list and log stats (every given number of episodes)
         ep_rewards.append(episode_reward)
         if not episode % AGGREGATE_STATS_EVERY or episode == 1:
@@ -376,7 +405,8 @@ def build_model():
             min_reward = min(ep_rewards[-AGGREGATE_STATS_EVERY:])
             max_reward = max(ep_rewards[-AGGREGATE_STATS_EVERY:])
             agent.tensorboard.update_stats(reward_avg=average_reward, reward_min=min_reward, reward_max=max_reward, epsilon=epsilon)
-
+            print(win_array[-AGGREGATE_STATS_EVERY:episode].mean())
+            print(jump_array[-AGGREGATE_STATS_EVERY:episode].mean())
             # Save model, but only when min reward is greater or equal a set value
             if min_reward >= MIN_REWARD:
                 agent.model.save(f'models/{MODEL_NAME}__{max_reward:_>7.2f}max_{average_reward:_>7.2f}avg_{min_reward:_>7.2f}min__{int(time.time())}.model')
@@ -386,7 +416,7 @@ def build_model():
             epsilon *= EPSILON_DECAY
             epsilon = max(MIN_EPSILON, epsilon)
 
-    return aggregate_episode_wins
+    return aggregate_episode_wins, ep_rewards, actions_array, jump_array, win_array
 
 
 def do_plotting(aggregate_episode_wins, episodes):
@@ -435,10 +465,10 @@ def do_plotting(aggregate_episode_wins, episodes):
     file_name  ="q_tables{}_attempt_3.png".format(episodes)
     fig.savefig(os.path.join(my_path, my_figure_folder, "wins_"+file_name), bbox_inches='tight')
 
-if __name__=="__main__":
-    aggregate_episode_wins=build_model()
-    print(aggregate_episode_wins)
+# if __name__=="__main__":
+aggregate_episode_wins, ep_rewards, actions_array, jump_array, win_array=build_model()
+print(aggregate_episode_wins)
 #%%
-    do_plotting(RESULTS, EPISODES)
+do_plotting(RESULTS, EPISODES)
 
 
