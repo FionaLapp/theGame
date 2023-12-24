@@ -518,6 +518,13 @@ class Strategy(metaclass=ABCMeta):
         self.game.current_player = player
         self.game.calculate_basic_metric()
 
+    def start_game(self):
+        self.game.current_player = self.game.players[0]
+        self.game.calculate_basic_metric()
+
+    def reset(self):
+        self.__init__(self.game.cards_in_hand, self.game.number_of_players, self.game.number_of_piles,self.game.cards_per_turn,self.game.number_of_cards)
+
 
 
 class PlayFirstTwoStrategy(Strategy):
